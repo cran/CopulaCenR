@@ -23,12 +23,10 @@ data(AREDS)
 # Fit null model without "rs2284665"
 copula2_sp_null <- ic_sp_copula(data = AREDS, copula = "Copula2",
                    l = 0, u = 15, m = 3, r = 3,
-                   var_list = c("SevScaleBL"),
-                   iter = 300, stepsize = 1e-6, method = "Newton")
+                   var_list = c("SevScaleBL"))
 # Fit full model
 copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
               l = 0, u = 15, m = 3, r = 3,
-              var_list = c("rs2284665","SevScaleBL"),
-              iter = 300, stepsize = 1e-6, method = "Newton")
+              var_list = c("rs2284665","SevScaleBL"))
 lrt_copula(model1 = copula2_sp, model2 = copula2_sp_null)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/fun_S3.R
 \name{logLik.CopulaCenR}
 \alias{logLik.CopulaCenR}
-\title{the log-likelihood of an CopulaCenR object}
+\title{the log-likelihood of a CopulaCenR object}
 \usage{
 \method{logLik}{CopulaCenR}(object, ...)
 }
@@ -12,5 +12,5 @@
 \item{...}{further arguments}
 }
 \description{
-the log-likelihood of an CopulaCenR object
+the log-likelihood of a CopulaCenR object
 }

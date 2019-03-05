@@ -258,24 +258,24 @@ rc_copula_log_lik_eta <-function(p, p2, x1, x2,indata1,indata2, quantiles = NULL
 
 
   C_val <- ifelse((indata1[,"status"] == 0) & (indata2[,"status"] == 0), C_val, 1)
-  term1 <- log(C_val)
+  term1 <- log(abs(C_val))
 
   term2 <- c_u1_val * (-u1_t1)
   term2 <- ifelse((indata1[,"status"] == 1) & (indata2[,"status"] == 0), term2, 1)
-  term2 <- log(term2)
+  term2 <- log(abs(term2))
   # term2 <- log(c_u1_val)+log(-u1_t1)
   # term2 <- ifelse((indata1[,"status"] == 1) & (indata2[,"status"] == 0), term2, 0)
 
   term3 <- (c_u2_val) * (-u2_t2)
   term3 <- ifelse((indata1[,"status"] == 0) & (indata2[,"status"] == 1), term3, 1)
-  term3 <- log(term3)
+  term3 <- log(abs(term3))
   # term3 <- log(c_u2_val)+log(-u2_t2)
   # term3 <- ifelse((indata1[,"status"] == 0) & (indata2[,"status"] == 1), term3, 0)
 
   term4 <- c_val * u1_t1 * u2_t2
   term4 <- ifelse((indata1[,"status"] == 1) & (indata2[,"status"] == 1), term4, 1)
   term4[term4 < 0] <- 1
-  term4 <- log(term4)
+  term4 <- log(abs(term4))
   # term4 <- log(c_val)+log(-u1_t1)+log(-u2_t2)
   # term4 <- ifelse((indata1[,"status"] == 1) & (indata2[,"status"] == 1), term4, 0)
 
@@ -406,16 +406,16 @@ ic_copula_log_lik_param_eta <- function(para, lambda, k, beta, x1, x2, t1_left, 
 
 
   # Use Copula functions to write each block of likelihood function
-  term1 <- log(C_val_1 - C_val_2 - C_val_3 + C_val_4)
+  term1 <- log(abs(C_val_1 - C_val_2 - C_val_3 + C_val_4))
   term1 <- ifelse((indata1[,"status"] == 1) & (indata2[,"status"] == 1), term1, 0)
 
-  term2 <- log(C_val_1 - C_val_3)
+  term2 <- log(abs(C_val_1 - C_val_3))
   term2 <- ifelse((indata1[,"status"] == 1) & (indata2[,"status"] == 0), term2, 0)
 
-  term3 <- log(C_val_1 - C_val_2)
+  term3 <- log(abs(C_val_1 - C_val_2))
   term3 <- ifelse((indata1[,"status"] == 0) & (indata2[,"status"] == 1), term3, 0)
 
-  term4 <- log(C_val_1)
+  term4 <- log(abs(C_val_1))
   term4 <- ifelse((indata1[,"status"] == 0) & (indata2[,"status"] == 0), term4, 0)
 
   logL<-(-1)*sum( term1 + term2 + term3 + term4 )
@@ -530,7 +530,10 @@ ic_copula_log_lik_sieve_eta <- function(para, beta, ep, x1, x2, bl1, br1, bl2, b
   term4 <- log(C_val_1)
   term4 <- ifelse((indata1[,"status"] == 0) & (indata2[,"status"] == 0), term4, 0)
 
+
   logL<-(-1)*sum( term1 + term2 + term3 + term4 )
+
+
   return(logL)
 
 }

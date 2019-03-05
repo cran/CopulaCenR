@@ -2,7 +2,7 @@
 % Please edit documentation in R/fun_S3.R
 \name{summary.CopulaCenR}
 \alias{summary.CopulaCenR}
-\title{Summarizing outputs of an CopulaCenR object}
+\title{Summarizing outputs of a CopulaCenR object}
 \usage{
 \method{summary}{CopulaCenR}(object, ...)
 }
@@ -12,5 +12,5 @@
 \item{...}{further arguments}
 }
 \description{
-Summarizing outputs of an CopulaCenR object
+Summarizing outputs of a CopulaCenR object
 }

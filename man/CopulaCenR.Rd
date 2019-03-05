@@ -5,13 +5,13 @@ Copula-based regression models for bivariate censored data
 }
 \description{
 Copula-based regression models for both bivariate right-censored data and bivariate interval-censored data: \cr
-1. Copula models with parametric (e.g. Weibull) margins: estimation/wald test (rc_par_copula, ic_par_copula), score test (score_copula) and likelihood ratio test (lrt_copula); \cr
-2. Copula models with semiparametric sieve margins: estimation/wald test (ic_sp_copula), score test (score_copula) and likelihood ratio test (lrt_copula). \cr
-3. Predict and plot joint/conditional/marginal survival probabilities based on a fitted copula model. \cr
-4. A user-friendly function (data_sim_copula) to simulate correlated event times based on copula and marginal specifications. \cr
+1. Copula models with parametric (e.g. Weibull) margins: estimation/wald test (\code{rc_par_copula}, \code{ic_par_copula}), score test (\code{score_copula}) and likelihood ratio test (\code{lrt_copula}); \cr
+2. Copula models with semiparametric sieve margins: estimation/wald test (\code{ic_sp_copula}), score test (\code{score_copula}) and likelihood ratio test (\code{lrt_copula}). \cr
+3. Predict and plot joint/conditional/marginal survival probabilities based on a fitted copula model using \code{fitted}, \code{predict}, \code{plot}, \code{lines}. \cr
+4. A user-friendly function (\code{data_sim_copula}) to simulate correlated event times based on copula and marginal specifications. \cr
 
-Data must be a data frame. For bivariate right-censored data, it shall include ind (1,2 to indicate units of a cluster), obs_time, status (0 for right-censoring and 1 for event). \cr
-For bivariate interval-censored data, it shall include ind (1,2 to indicate units of a cluster), Left (>=0), Right (can include Inf), status (0 for right-censoring and 1 for left- and interval-censoring). \cr
+Data must be a data frame. For bivariate right-censored data, it shall include \code{id} (subject id), \code{ind} (1,2 to indicate units of one subject), \code{obs_time}, \code{status} (0 for right-censoring and 1 for event). \cr
+For bivariate interval-censored data, it shall include \code{id} (subject id), \code{ind} (1,2 to indicate units of one subject), \code{Left} (great than 0), \code{Right} (can include \code{Inf}), \code{status} (0 for right-censoring and 1 for left- and interval-censoring). \cr
 
 }
 \source{
@@ -23,16 +23,14 @@ Tao Sun and Ying Ding (2019). Copula-based Semiparametric Transformation Model f
 data(DRS)
 # fit a Clayton-Weibull model
 clayton_wb <- rc_par_copula(data = DRS, var_list = "treat",
-              copula = "Clayton", m.dist = "Weibull",
-              method = "Newton", iter = 500, stepsize = 1e-06)
+              copula = "Clayton", m.dist = "Weibull")
 summary(clayton_wb)
 
 ### bivariate interval-censored data
 data(AREDS)
 copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
-              l = 0, u = 15, m = 4, r = 3,
-              var_list = c("ENROLLAGE","rs2284665","SevScaleBL"),
-              iter = 300, stepsize = 1e-6, method = "Newton")
+              l = 0, u = 15, m = 3, r = 3,
+              var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 summary(copula2_sp)
 }
 

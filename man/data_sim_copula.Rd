@@ -9,27 +9,66 @@ data_sim_copula(n, copula, eta, dist, baseline, var_list, COV_beta, x1, x2)
 \arguments{
 \item{n}{sample size}
 
-\item{copula}{types of copula, including "Clayton", "Gumbel", "Frank", "AMH" and "Joe"}
+\item{copula}{types of copula, including \code{"Clayton"}, \code{"Gumbel"},
+\code{"Frank"}, \code{"AMH"}, \code{"Joe"}}
 
-\item{eta}{copula parameter}
+\item{eta}{copula parameter \eqn{\eta}}
 
-\item{dist}{marginal distributions, including "Weibull", "Gompertz" and "Loglogistic"}
+\item{dist}{marginal distributions, including \code{"Weibull"},
+\code{"Gompertz"}, \code{"Loglogistic"}}
 
-\item{baseline}{marginal distribution parameters. For weibull and loglogistic, it shall be lambda (scale) and k (shape); for gompertz, it shall be a (shape) and b (rate)}
+\item{baseline}{marginal distribution parameters.
+For \code{Weibull} and \code{Loglogistic}, it shall be \eqn{\lambda} (scale) and \eqn{k} (shape);
+for \code{Gompertz}, it shall be \eqn{a} (shape) and \eqn{b} (rate)}
 
-\item{var_list}{a vector of covariate names; assume same covariate names for two margins}
+\item{var_list}{a vector of covariate names;
+assume the same covariates for two margins}
 
-\item{COV_beta}{a vector of regression coefficients corresponding to var_list; assume same COV_beta between two margins}
+\item{COV_beta}{a vector of regression coefficients corresponding to \code{var_list};
+assume the same coefficients between two margins}
 
-\item{x1}{a data frame of covariates for margin 1; it shall have n rows, with columns corresponding to the var_list}
+\item{x1}{a data frame of covariates for margin 1; it shall have n rows,
+with columns corresponding to the \code{var_list}}
 
 \item{x2}{a data frame of covariates for margin 2}
 }
 \value{
-a data frame of bivariate time-to-event data with covariate
+a data frame of bivariate time-to-event data with covariates
 }
 \description{
-This function (data_sim_copula) is to generate a sample of subjects with two correlated event times based on specific copula and marginal models
+To generate a sample of subjects with two correlated event times based on specific copula and marginal models
+}
+\details{
+The parametric generator functions of copula functions are list below:
+
+The Clayton copula has a generator \deqn{\phi_{\eta}(t) = (1+t)^{-1/\eta},}
+with \eqn{\eta > 0} and Kendall's \eqn{\tau = \eta/(2+\eta)}.
+
+The Gumbel copula has a generator \deqn{\phi_{\eta}(t) = \exp(-t^{1/\eta}),}
+with \eqn{\eta \geq 1} and Kendall's \eqn{\tau = 1 - 1/\eta}.
+
+The Frank copula has a generator \deqn{\phi_{\eta}(t) = -\eta^{-1}\log \{1+e^{-t}(e^{-\eta}-1)\},}
+with \eqn{\eta \geq 0} and Kendall's \eqn{\tau = 1+4\{D_1(\eta)-1\}/\eta},
+in which \eqn{D_1(\eta) = \frac{1}{\eta} \int_{0}^{\eta} \frac{t}{e^t-1}dt}.
+
+The AMH copula has a generator \deqn{\phi_{\eta}(t) = (1-\eta)/(e^{t}-\eta),}
+with \eqn{\eta \in [0,1)} and Kendall's \eqn{\tau =  1-2\{(1-\eta)^2 \log (1-\eta) + \eta\}/(3\eta^2)}.
+
+The Joe copula has a generator \deqn{\phi_{\eta}(t) = 1-(1-e^{-t})^{1/\eta},}
+with \eqn{\eta \geq 1} and Kendall's \eqn{\tau = 1 - 4 \sum_{k=1}^{\infty} \frac{1}{k(\eta k+2)\{\eta(k-1)+2\}}}. \cr
+
+
+
+The marginal survival distributions follow the standard parameterization in Wikipedia, which are listed below:
+
+The Weibull (PH) survival distribution is \deqn{\exp \{-(t/\lambda)^k  e^{Z^{\top}\beta}\},}
+with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape.
+
+The Gompertz (PH) survival distribution is \deqn{\exp \{-\frac{b}{a}(e^{at}-1) e^{Z^{\top}\beta}\},}
+with \eqn{a > 0} as shape and \eqn{b > 0} as rate
+
+The Loglogistic (PO) survival distribution is \deqn{\{1+(t/\lambda)^{k} e^{Z^{\top}\beta} \}^{-1},}
+with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape.
 }
 \examples{
 library(CopulaCenR)

@@ -5,19 +5,23 @@
 \title{Copula regression models with parametric margins for bivariate interval-censored data}
 \source{
 Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2018).
-Copula-based Score Test for Bivariate Time-to-event Data, with Application to a Genetic Study of AMD Progression.
+Copula-based Score Test for Bivariate Time-to-event Data,
+with Application to a Genetic Study of AMD Progression.
 \emph{Lifetime Data Analysis} doi:10.1007/s10985-018-09459-5. \cr
 Tao Sun and Ying Ding (2019).
-Copula-based Semiparametric Transformation Model for Bivariate Data Under General Interval Censoring.
+Copula-based Semiparametric Transformation Model for Bivariate Data
+Under General Interval Censoring.
 http://arxiv.org/abs/1901.01918.
 }
 \usage{
 ic_par_copula(data, var_list, copula, m.dist = "Loglogistic",
-  method = "Newton", iter = 300, stepsize = 1e-05, hes = TRUE)
+  method = "BFGS", iter = 300, stepsize = 1e-05, hes = TRUE,
+  control = list())
 }
 \arguments{
-\item{data}{a data frame; must have id (subject id), ind (1,2 for two units in each subject),
-Left (0 if left-censoring), Right (Inf if right-censoring), status (0 for right-censoring, 1 for interval-censoring or left-censoring), and covariates by column.}
+\item{data}{a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two units in each subject),
+\code{Left} (0 if left-censoring), \code{Right} (Inf if right-censoring), \code{status} (0 for right-censoring,
+1 for interval-censoring or left-censoring), and \code{covariates} by column.}
 
 \item{var_list}{the list of covariates to be fitted into the copula model.}
 
@@ -25,38 +29,81 @@ Left (0 if left-censoring), Right (Inf if right-censoring), status (0 for right-
 
 \item{m.dist}{baseline marginal distribution.}
 
-\item{method}{optimization method; default is "Newton" (from nlm).}
+\item{method}{optimization method (see ?optim); default is "BFGS";
+also can be "Newton" (see ?nlm).}
 
-\item{iter}{number of iterations; default is 300.}
+\item{iter}{number of iterations when method is \code{"Newton"};
+default is 300.}
 
-\item{stepsize}{size of optimization step; default is 1e-5.}
+\item{stepsize}{size of optimization step when method is \code{"Newton"};
+default is 1e-5.}
 
-\item{hes}{default = T for hessian calculation.}
-}
-\value{
-a CopulaCenR object summarizing the model. Can be used as an input to general S3 methods including
-summary, plot, lines, coef, logLik, predict.
+\item{hes}{default is \code{TRUE} for hessian calculation.}
+
+\item{control}{a list of control parameters for methods other than \code{"Newton"};
+see \code{?optim}.}
 }
 \description{
 Fits a copula model with parametric margins for bivariate interval-censored data.
 }
 \details{
-The supported copula models are "Clayton", "Gumbel", "Frank", "AMH", "Joe", "Copula2".
-The "Copula2" model is a two-parameter copula model that incorporates Clayton and Gumbel as special cases.
-The supported marginal distributions are "Weibull" (proportional hazards), "Gompertz" (proportional hazards) and "Loglogistic" (proportional odds).
-We assume the same baseline parameters between two margins. \cr
+The input data must be a data frame. with columns \code{id} (sample id),
+\code{ind} (1,2 for the two units from the same id),
+\code{Left} (0 if left-censoring), \code{Right} (Inf if right-censoring),
+\code{status} (0 for right-censoring, 1 for interval-censoring or left-censoring),
+and \code{covariates}. The function does not allow \code{Left} == \code{Right}. \cr
 
-The input data must be a data frame. with columns id (sample id), ind (1,2 for the two units from the same id),
-Left (0 if left-censoring), Right (Inf if right-censoring), status (0 for right-censoring, 1 for interval-censoring or left-censoring), and covariates. Do not allow Left == Right. \cr
 
-Optimization methods can be "Newton" (from nlm) and all methods from optim, such as "Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN". "Brent" is not allowed due to more than one estimators.
+The supported copula models are \code{"Clayton"}, \code{"Gumbel"}, \code{"Frank"},
+\code{"AMH"}, \code{"Joe"} and \code{"Copula2"}.
+The \code{"Copula2"} model is a two-parameter copula model that incorporates \code{Clayton}
+and \code{Gumbel} as special cases.
+The parametric generator functions of copula functions are list below:
+
+The Clayton copula has a generator \deqn{\phi_{\eta}(t) = (1+t)^{-1/\eta},}
+with \eqn{\eta > 0} and Kendall's \eqn{\tau = \eta/(2+\eta)}.
+
+The Gumbel copula has a generator \deqn{\phi_{\eta}(t) = \exp(-t^{1/\eta}),}
+with \eqn{\eta \geq 1} and Kendall's \eqn{\tau = 1 - 1/\eta}.
+
+The Frank copula has a generator \deqn{\phi_{\eta}(t) = -\eta^{-1}\log \{1+e^{-t}(e^{-\eta}-1)\},}
+with \eqn{\eta \geq 0} and Kendall's \eqn{\tau = 1+4\{D_1(\eta)-1\}/\eta},
+in which \eqn{D_1(\eta) = \frac{1}{\eta} \int_{0}^{\eta} \frac{t}{e^t-1}dt}.
+
+The AMH copula has a generator \deqn{\phi_{\eta}(t) = (1-\eta)/(e^{t}-\eta),}
+with \eqn{\eta \in [0,1)} and Kendall's \eqn{\tau =  1-2\{(1-\eta)^2 \log (1-\eta) + \eta\}/(3\eta^2)}.
+
+The Joe copula has a generator \deqn{\phi_{\eta}(t) = 1-(1-e^{-t})^{1/\eta},}
+with \eqn{\eta \geq 1} and Kendall's \eqn{\tau = 1 - 4 \sum_{k=1}^{\infty} \frac{1}{k(\eta k+2)\{\eta(k-1)+2\}}}.
+
+The Two-parameter copula (Copula2) has a generator \deqn{\phi_{\eta}(t) = \{1/(1+t^{\alpha})\}^{\kappa},}
+with \eqn{\alpha \in (0,1], \kappa > 0} and Kendall's \eqn{\tau = 1-2\alpha\kappa/(2\kappa+1)}. \cr
+
+
+The supported marginal distributions are \code{"Weibull"} (proportional hazards),
+\code{"Gompertz"} (proportional hazards) and \code{"Loglogistic"} (proportional odds).
+These marginal distributions follow the standard parameterization in Wikipedia
+and we assume the same baseline parameters between two margins. \cr
+
+The Weibull (PH) survival distribution is \deqn{\exp \{-(t/\lambda)^k  e^{Z^{\top}\beta}\},}
+with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape.
+
+The Gompertz (PH) survival distribution is \deqn{\exp \{-\frac{b}{a}(e^{at}-1) e^{Z^{\top}\beta}\},}
+with \eqn{a > 0} as shape and \eqn{b > 0} as rate.
+
+The Loglogistic (PO) survival distribution is \deqn{\{1+(t/\lambda)^{k} e^{Z^{\top}\beta} \}^{-1},}
+with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape. \cr
+
+
+Optimization methods can be all methods (except \code{"Brent"}) from \code{optim}, such as
+\code{"Nelder-Mead"}, \code{"BFGS"}, \code{"CG"}, \code{"L-BFGS-B"}, \code{"SANN"}.
+Users can also use \code{"Newton"} (from \code{nlm}).
 }
 \examples{
 # fit a Copula2-Loglogistic model
 data(AREDS)
 copula2_loglog <- ic_par_copula(data = AREDS, copula = "Copula2",
                   m.dist = "Loglogistic",
-                  var_list = c("ENROLLAGE","rs2284665","SevScaleBL"),
-                  method = "Newton", iter = 300, stepsize = 1e-6)
+                  var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 summary(copula2_loglog)
 }

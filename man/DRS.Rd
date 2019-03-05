@@ -21,13 +21,13 @@ A real dataset of bivariate right-censored data with 197 subjects and 3 covariat
   }
 }
 \details{
-Each patient had one eye randomized to laser treatment and the other eye received no treatment. For each eye, the event of interest was the time from initiation of treatment to the time when visual acuity dropped below 5/200 two visits in a row (call it "blindness"). Thus there is a built-in lag time of approximately 6 months (visits were every 3 months). Survival times in this dataset are therefore the actual time to blindness in months, minus the minimum possible time to event (6.5 months). Censoring was caused by death, dropout, or end of the study.
+Each patient had one eye randomized to laser treatment and the other eye received no treatment. For each eye, the event of interest was the time from initiation of treatment to the time when visual acuity dropped below 5/200 (call it "blindness"). Survival times in this dataset are the actual time to blindness in months. Censoring was caused by death, dropout, or end of the study.
 }
 \source{
 https://www.mayo.edu/research/documents/DRShtml/DOC-10027460
 }
 \references{
-Huster WJ, Brookmeyer R, Self SG (1989). Modelling paired survival data with covariates. \emph{Biometrics} \strong{45}, 145-156.
+Huster WJ, Brookmeyer R, Self SG (1989). Modeling paired survival data with covariates. \emph{Biometrics} \strong{45}, 145-156.
 }
 \examples{
 data(DRS)

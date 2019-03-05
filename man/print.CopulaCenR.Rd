@@ -2,7 +2,7 @@
 % Please edit documentation in R/fun_S3.R
 \name{print.CopulaCenR}
 \alias{print.CopulaCenR}
-\title{Printing outputs of an CopulaCenR object}
+\title{Printing outputs of a CopulaCenR object}
 \usage{
 \method{print}{CopulaCenR}(x, ...)
 }
@@ -12,5 +12,5 @@
 \item{...}{further arguments}
 }
 \description{
-Printing outputs of an CopulaCenR object
+Printing outputs of a CopulaCenR object
 }

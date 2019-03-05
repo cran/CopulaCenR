@@ -1,6 +1,87 @@
 
 ######## functions to generate marginal, conditional and joint survival probabilities ###########
-######## used for plotting predicted survival probabilities ######
+######## used for estimating and plotting predicted survival probabilities ######
+
+
+###### internally used prediction function #######
+
+internal_predict.CopulaCenR <- function(object, class = "joint", newdata, evalPoints = 50, evalTimes1 = NULL, evalTimes2 = NULL, cond_time = NULL, cond_margin = 2,...) { # for conditional, only need to assign for evalTimes1
+
+
+  # first screen the inputs #
+  if (class(object) != "CopulaCenR") stop('object must be a CopulaCenR class object')
+  if (!class %in% c("joint","conditional","marginal")) stop('class must be one of joint, conditional and marginal')
+  if (!is.data.frame(newdata) | !"id" %in% colnames(newdata) | !"ind" %in% colnames(newdata)) stop('newdata must be a data frame with columns id, ind and var_list')
+
+  # sort by id and ind
+  newdata <- newdata[order(newdata$id, newdata$ind), ]
+  newdata1 = newdata[newdata$ind==1, object$var_list]
+  newdata2 = newdata[newdata$ind==2, object$var_list]
+
+  newdata1 = as.numeric(newdata1)
+  newdata2 = as.numeric(newdata2)
+
+
+  if (is.null(evalTimes1) & is.null(evalPoints)) {
+    evalPoints = 50 # set default
+  }
+
+  if (is.null(evalTimes1) & !is.null(evalPoints)) {
+    # calculate grid length
+    # xmin_1 = min(c(object$indata1[,"Left"], object$indata1[,"Right"]))
+    # xmax_1 = max(c(object$indata1[,"Left"], object$indata1[!is.infinite(object$indata1[,"Right"]),"Right"]))
+    # xmin_2 = min(c(object$indata2[,"Left"], object$indata2[,"Right"]))
+    # xmax_2 = max(c(object$indata2[,"Left"], object$indata2[!is.infinite(object$indata2[,"Right"]),"Right"]))
+    xmin_1 = min(c(object$indata1$Left, object$indata1$Right, object$indata1$obs_time))
+    xmax_1 = max(c(object$indata1$Left, object$indata1$Right[!is.infinite(object$indata1$Right)], object$indata1$obs_time))
+    xmin_2 = min(c(object$indata2$Left, object$indata2$Right, object$indata2$obs_time))
+    xmax_2 = max(c(object$indata2$Left, object$indata2$Right[!is.infinite(object$indata2$Right)], object$indata2$obs_time))
+    grid.length1 = (xmax_1 - xmin_1)/evalPoints
+    grid.length2 = (xmax_2 - xmin_2)/evalPoints
+
+    if (class == "marginal") {
+      output1 <- m_copula(object = object, grid.length = grid.length1, newdata = newdata1)
+      output2 <- m_copula(object = object, grid.length = grid.length2, newdata = newdata2)
+      output <- list(grid1 = output1$grid, m1 = output1$m, grid2 = output2$grid, m2 = output2$m,...)
+    }
+
+    if (class == "conditional") {
+      output <- cond_copula(object = object, grid.length = grid.length1, newdata1 = newdata1, newdata2 = newdata2, cond_time = cond_time, cond_margin = cond_margin)
+    }
+
+    if (class == "joint") {
+      output <- surv2_copula(object = object, grid.length1 = grid.length1, grid.length2 = grid.length2, newdata1 = newdata1, newdata2 = newdata2)
+    }
+
+  }
+
+
+  if (!is.null(evalTimes1)) {
+
+    grid.length1 = NULL
+    grid.length2 = NULL
+
+    if (class == "marginal") {
+      output1 <- m_copula(object = object, grid.length = grid.length1, newdata = newdata1, evalTimes = evalTimes1)
+      output2 <- m_copula(object = object, grid.length = grid.length2, newdata = newdata2, evalTimes = evalTimes2)
+      output <- list(grid1 = output1$grid, m1 = output1$m, grid2 = output2$grid, m2 = output2$m,...)
+
+    }
+
+    if (class == "conditional") {
+      output <- cond_copula(object = object, grid.length = grid.length1, newdata1 = newdata1, newdata2 = newdata2, cond_time = cond_time, cond_margin = cond_margin, evalTimes = evalTimes1)
+    }
+
+    if (class == "joint") {
+      output <- surv2_copula(object = object, grid.length1 = grid.length1, grid.length2 = grid.length2, newdata1 = newdata1, newdata2 = newdata2, evalTimes1 = evalTimes1, evalTimes2 = evalTimes2)
+    }
+
+  }
+
+
+
+  return(output)
+}
 
 
 ####### wrapper functions ##########
@@ -65,28 +146,28 @@ cond_copula <- function(object, grid.length, newdata1, newdata2, cond_time, cond
 
 
 
-surv2_copula <- function(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes = NULL){ # length of newdata1/newdata2 is the same as p = # of covariates in object
+surv2_copula <- function(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes1 = NULL, evalTimes2 = NULL){ # length of newdata1/newdata2 is the same as p = # of covariates in object
 
 
 
   # IC, transformation model
   if (is.numeric(object$m)){
 
-    output <- surv2_sieve(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes = evalTimes)
+    output <- surv2_sieve(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes1 = evalTimes1, evalTimes2 = evalTimes2)
 
   }
 
   # IC, parametric margins
   else if (!is.numeric(object$m) & !("obs_time" %in% colnames(object$indata1)) ) {
 
-    output <- surv2_ic(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes = evalTimes)
+    output <- surv2_ic(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes1 = evalTimes1, evalTimes2 = evalTimes2)
 
   }
 
   # RC, parametric margins
   else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) ) {
 
-    output <- surv2_rc(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes = evalTimes)
+    output <- surv2_rc(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes1 = evalTimes1, evalTimes2 = evalTimes2)
 
   }
 
@@ -1793,7 +1874,7 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
 
 
 ### joint survival, ic, sieve margins ###
-surv2_sieve <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
+surv2_sieve <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes1 = NULL, evalTimes2 = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
 
 
 
@@ -1806,8 +1887,8 @@ surv2_sieve <- function(object, grid.length1, grid.length2, margin1, margin2, ev
   p <- dim(object$x1)[2]
 
   # create grids for two events; assume same grid for both events
-  if (is.null(evalTimes)) {grid1 = seq(l,u,grid.length1); grid2 = seq(l,u,grid.length2)}
-  if (!is.null(evalTimes)) {grid1 = grid2 = evalTimes}
+  if (is.null(evalTimes1)) {grid1 = seq(l,u,grid.length1); grid2 = seq(l,u,grid.length2)}
+  if (!is.null(evalTimes1)) {grid1 = evalTimes1; grid2 = evalTimes2}
 
   # generate bernstein polynomials based on grids
   BL=matrix(0,nrow = length(grid1),ncol = m+1)
@@ -1938,7 +2019,7 @@ surv2_sieve <- function(object, grid.length1, grid.length2, margin1, margin2, ev
 
 ### joint survival, ic, parametric margins ###
 
-surv2_ic <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
+surv2_ic <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes1 = NULL, evalTimes2 = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
 
 
 
@@ -1953,8 +2034,9 @@ surv2_ic <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
   p <- dim(object$x1)[2]
 
   # create grids for two events; assume same grid for both events
-  if (is.null(evalTimes)) {grid1 = seq(l1,u1,grid.length1); grid2 = seq(l2,u2,grid.length2)}
-  if (!is.null(evalTimes)) {grid1 = grid2 = evalTimes}
+  if (is.null(evalTimes1)) {grid1 = seq(l1,u1,grid.length1); grid2 = seq(l2,u2,grid.length2)}
+  if (!is.null(evalTimes1)) {grid1 = evalTimes1; grid2 = evalTimes2}
+
 
   # joint survival probability
   surv2 <- matrix(NA,nrow=length(grid1),ncol=length(grid2))
@@ -2191,7 +2273,7 @@ surv2_ic <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
 
 ### joint survival, rc, parametric margins ###
 
-surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
+surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes1 = NULL, evalTimes2 = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
 
 
 
@@ -2208,8 +2290,8 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
   p <- dim(object$x1)[2]
 
   # create grids for two events; assume same grid for both events
-  if (is.null(evalTimes)) {grid1 = seq(l1,u1,grid.length1); grid2 = seq(l2,u2,grid.length2)}
-  if (!is.null(evalTimes)) {grid1 = grid2 = evalTimes}
+  if (is.null(evalTimes1)) {grid1 = seq(l1,u1,grid.length1); grid2 = seq(l2,u2,grid.length2)}
+  if (!is.null(evalTimes1)) {grid1 = evalTimes1; grid2 = evalTimes2}
 
   # joint survival probability
   surv2 <- matrix(NA,nrow=length(grid1),ncol=length(grid2))

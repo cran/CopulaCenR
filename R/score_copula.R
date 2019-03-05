@@ -4,7 +4,9 @@
 #'
 #' @name score_copula
 #' @aliases score_copula
-#' @param object The output object from the main functions (rc_par_copula, ic_sp_copula, ic_par_copula) under the null hypothesis
+#' @param object The output object from the main functions
+#' (\code{rc_par_copula}, \code{ic_sp_copula}, \code{ic_par_copula})
+#' under the null hypothesis
 #' @param var_score the list of covariates to be tested by the score test
 #' @importFrom corpcor pseudoinverse
 #' @importFrom stats nlm
@@ -18,9 +20,8 @@
 #' # fit a Copula2-semiparametric model under NULL
 #' data(AREDS)
 #' copula2_sp_null <- ic_sp_copula(data = AREDS, copula = "Copula2",
-#'                    l = 0, u = 15, m = 4, r = 3,
-#'                    var_list = c("ENROLLAGE","SevScaleBL"),
-#'                    iter = 300, stepsize = 1e-6, method = "Newton")
+#'                    l = 0, u = 15, m = 3, r = 3,
+#'                    var_list = c("ENROLLAGE","SevScaleBL"))
 #' score_copula(object = copula2_sp_null, var_score = "rs2284665")
 
 

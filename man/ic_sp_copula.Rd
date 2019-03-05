@@ -5,66 +5,112 @@
 \title{Copula regression models with semiparametric margins for bivariate interval-censored data}
 \source{
 Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2018).
-Copula-based Score Test for Bivariate Time-to-event Data, with Application to a Genetic Study of AMD Progression.
+Copula-based Score Test for Bivariate Time-to-event Data,
+with Application to a Genetic Study of AMD Progression.
 \emph{Lifetime Data Analysis} doi:10.1007/s10985-018-09459-5. \cr
 Tao Sun and Ying Ding (2019).
-Copula-based Semiparametric Transformation Model for Bivariate Data Under General Interval Censoring.
+Copula-based Semiparametric Transformation Model for Bivariate Data
+Under General Interval Censoring.
 http://arxiv.org/abs/1901.01918.
 }
 \usage{
 ic_sp_copula(data, var_list, l = 0, u, copula = "Copula2", m = 3,
-  r = 3, method = "Newton", iter = 300, stepsize = 1e-05,
-  hes = TRUE)
+  r = 3, method = "BFGS", iter = 300, stepsize = 1e-06,
+  hes = TRUE, control = list(reltol = 1e-06))
 }
 \arguments{
-\item{data}{a data frame; must have id (subject id), ind (1,2 for two units in each subject),
-Left (0 if left-censoring), Right (Inf if right-censoring), status (0 for right-censoring, 1 for interval-censoring or left-censoring), and covariates by column.}
+\item{data}{a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two units in each subject),
+\code{Left} (0 if left-censoring), \code{Right} (Inf if right-censoring), \code{status} (0 for right-censoring,
+1 for interval-censoring or left-censoring), and \code{covariates} by column.}
 
 \item{var_list}{the list of covariates to be fitted into the copula model.}
 
-\item{l}{the left bound for all Left and Right endpoints of observed finite intervals; default is 0.}
+\item{l}{the left bound for all \code{Left} and \code{Right} endpoints of observed finite intervals;
+default is 0.}
 
-\item{u}{the right bound for all Left and Right endpoints of observed finite intervalsl; has to be a finite value}
+\item{u}{the right bound for all \code{Left} and \code{Right} endpoints of observed finite intervalsl;
+has to be a finite value}
 
 \item{copula}{Types of copula model.}
 
-\item{m}{integer, degree of Berstein polynomials (assume same phi for two margins, leading to m+1 Berstein coefficients parameters).}
+\item{m}{integer, degree of Berstein polynomials for both margins; default is 3}
 
 \item{r}{postive transformation parameter for the semi-parametric linear transformation model.}
 
-\item{method}{optimization method; default is "Newton" using nlm; Alternatives are methods in the general optim function, such as "CG" (Conjugate Gradient).}
+\item{method}{optimization method (see \code{?optim}); default is \code{"BFGS"};
+also can be \code{"Newton"} (see \code{?nlm}).}
 
-\item{iter}{number of iterations allowed for method = "Newton"; default is 300.}
+\item{iter}{number of iterations when \code{method = "Newton"};
+default is 300.}
 
-\item{stepsize}{size of optimization step for method = "Newton"; default is 1e-5.}
+\item{stepsize}{size of optimization step when method is \code{"Newton"};
+default is 1e-6.}
 
-\item{hes}{default = T for hessian calculation; if LRT is desired, can set hes = FALSE to save time.}
-}
-\value{
-a CopulaCenR object summarizing the model. Can be used as an input to general S3 methods including
-summary, plot, lines, coef, logLik, predict.
+\item{hes}{default is \code{TRUE} for hessian calculation;
+if LRT is desired, can set \code{hes = FALSE} to save time.}
+
+\item{control}{a list of control parameters for methods other than \code{"Newton"};
+see ?optim.}
 }
 \description{
 Fits a copula model with semiparametric margins for bivariate interval-censored data.
 }
 \details{
-The supported copula models are "Clayton", "Gumbel", "Frank", "AMH", "Joe", "Copula2".
-The "Copula2" model is a two-parameter copula model that incorporates Clayton and Gumbel as special cases.
-The marginal semiparametric transformation models are built based on Bernstein polynomials.
-The parameter r (a positive number) decides the model assumption, with r = 1 for proportional hazards and 3 for proportional odds.
-The parameter m (a positive integer) is the degree of Bernstein polynomials, with default m = 4.
-Usually, m and r are selected based on the AIC value, which is provided after fitting the copula model. \cr
+The input data must be a data frame. with columns \code{id} (sample id),
+\code{ind} (1,2 for the two units from the same id),
+\code{Left} (0 if left-censoring), \code{Right} (Inf if right-censoring),
+\code{status} (0 for right-censoring, 1 for interval-censoring or left-censoring),
+and \code{covariates}. The function does not allow \code{Left} == \code{Right}. \cr
 
-The input data must be a data frame. with columns id (sample id), ind (1,2 for the two units from the same id),
-Left (0 if left-censoring), Right (Inf if right-censoring), status (0 for right-censoring, 1 for interval-censoring or left-censoring), and covariates. Do not allow Left == Right. \cr
 
-Optimization methods can be "Newton" (from nlm) and all methods from optim, such as "Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN". "Brent" is not allowed due to more than one estimators.
+The supported copula models are \code{"Clayton"}, \code{"Gumbel"}, \code{"Frank"},
+\code{"AMH"}, \code{"Joe"} and \code{"Copula2"}.
+The \code{"Copula2"} model is a two-parameter copula model that incorporates \code{Clayton}
+and \code{Gumbel} as special cases.
+The parametric generator functions of copula functions are list below:
+
+The Clayton copula has a generator \deqn{\phi_{\eta}(t) = (1+t)^{-1/\eta},}
+with \eqn{\eta > 0} and Kendall's \eqn{\tau = \eta/(2+\eta)}.
+
+The Gumbel copula has a generator \deqn{\phi_{\eta}(t) = \exp(-t^{1/\eta}),}
+with \eqn{\eta \geq 1} and Kendall's \eqn{\tau = 1 - 1/\eta}.
+
+The Frank copula has a generator \deqn{\phi_{\eta}(t) = -\eta^{-1}\log \{1+e^{-t}(e^{-\eta}-1)\},}
+with \eqn{\eta \geq 0} and Kendall's \eqn{\tau = 1+4\{D_1(\eta)-1\}/\eta},
+in which \eqn{D_1(\eta) = \frac{1}{\eta} \int_{0}^{\eta} \frac{t}{e^t-1}dt}.
+
+The AMH copula has a generator \deqn{\phi_{\eta}(t) = (1-\eta)/(e^{t}-\eta),}
+with \eqn{\eta \in [0,1)} and Kendall's \eqn{\tau =  1-2\{(1-\eta)^2 \log (1-\eta) + \eta\}/(3\eta^2)}.
+
+The Joe copula has a generator \deqn{\phi_{\eta}(t) = 1-(1-e^{-t})^{1/\eta},}
+with \eqn{\eta \geq 1} and Kendall's \eqn{\tau = 1 - 4 \sum_{k=1}^{\infty} \frac{1}{k(\eta k+2)\{\eta(k-1)+2\}}}.
+
+The Two-parameter copula (Copula2) has a generator \deqn{\phi_{\eta}(t) = \{1/(1+t^{\alpha})\}^{\kappa},}
+with \eqn{\alpha \in (0,1], \kappa > 0} and Kendall's \eqn{\tau = 1-2\alpha\kappa/(2\kappa+1)}. \cr
+
+
+The marginal semiparametric transformation models are built based on Bernstein polynomials, which is formulated below:
+
+\deqn{S(t|Z) = \exp[-G\{\Lambda(t) e^{Z^{\top}\beta}\}],} where \eqn{t} is time, \eqn{Z} is covariate,
+\eqn{\beta} is coefficient and \eqn{\Lambda(t)} is an unspecified function with infinite dimensions.
+We approximate \eqn{\Lambda(t)} in a sieve space constructed by Bernstein polynomials with degree \eqn{m}. By default, \eqn{m=3}.
+In the end, all model parameters are estimated by the sieve estimators (Sun et.al., 2019).
+
+The \eqn{G(\cdot)} function is the transformation function with a parameter \eqn{r > 0}, which has a form of
+\eqn{G(x) = \frac{(1+x)^r - 1}{r}}, when \eqn{0 < r \leq 2} and \eqn{G(x) = \frac{\log\{1 + (r-2)x\}}{r - 2}} when \eqn{r > 2}.
+When \eqn{r = 1}, the marginal model becomes a proportional hazards model;
+when \eqn{r = 3}, the marginal model becomes a proportional odds model.
+In practice, \code{m} and \code{r} can be selected based on the AIC value. \cr
+
+Optimization methods can be all methods (except \code{"Brent"}) from \code{optim}, such as
+\code{"Nelder-Mead"}, \code{"BFGS"}, \code{"CG"}, \code{"L-BFGS-B"}, \code{"SANN"}.
+Users can also use \code{"Newton"} (from \code{nlm}).
 }
 \examples{
 # fit a Copula2-Semiparametric model
 data(AREDS)
-copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2", l = 0, u = 15,
-              m = 4, r = 3, var_list = c("ENROLLAGE","rs2284665","SevScaleBL"),
-              iter = 300, stepsize = 1e-6, method = "Newton")
+copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+              l = 0, u = 15, m = 3, r = 3,
+              var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 summary(copula2_sp)
 }
