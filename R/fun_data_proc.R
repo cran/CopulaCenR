@@ -79,6 +79,8 @@ var_transform_score <- function(indata, var_score, x0) {
 # ic, parametric
 data_process <- function(data, var_list) {
 
+  data <- data[order(data$id, data$ind), ]
+
   indata1 <- data[data[,"ind"]==1, ]
   indata2 <- data[data[,"ind"]==2, ]
   # indata1 <- subset(data, ind==1)
@@ -114,6 +116,8 @@ data_process <- function(data, var_list) {
 
 # ic, sieve
 data_process_sieve <- function(data, l, u, var_list, m) {
+
+  data <- data[order(data$id, data$ind), ]
 
   # replace Inf by constant u
   data$Right[data$status==0] <- u
@@ -205,6 +209,8 @@ get_covariates_rc <- function(data, var_list){
 
 
 data_preprocess_rc <- function(data, var_list){
+
+  data <- data[order(data$id, data$ind), ]
 
   indata1 <- data[data[,"ind"]==1, ]
   indata2 <- data[data[,"ind"]==2, ]

@@ -14,10 +14,10 @@ A real dataset of bivariate right-censored data with 197 subjects and 3 covariat
     \item{\code{id}}{subject id}
     \item{\code{ind}}{margin indicator, 1 for right eye, 2 for left eye}
     \item{\code{obs_time}}{time of blindness (in months) from treatment}
-    \item{\code{status}}{censoring indicator, 1=blindness, 0=right censoring}
-    \item{\code{treat}}{laser treatment type, 0=no treatment, 1=xenon, 2=argon}
+    \item{\code{status}}{censoring indicator, 1 = blindness, 0 = right censoring}
+    \item{\code{treat}}{laser treatment type, 0 = no treatment, 1 = xenon, 2 = argon}
     \item{\code{age}}{age at diagnosis of diabetes}
-    \item{\code{type}}{type of diabetes, 1= juvenile (age at treatment < 20), 2=adult}
+    \item{\code{type}}{type of diabetes, 1 = juvenile (age at treatment < 20), 2 = adult}
   }
 }
 \details{
@@ -31,5 +31,10 @@ Huster WJ, Brookmeyer R, Self SG (1989). Modeling paired survival data with cova
 }
 \examples{
 data(DRS)
+clayton_wb <- rc_par_copula(data = DRS,
+              var_list = "treat",
+              copula = "Clayton",
+              m.dist = "Weibull")
+summary(clayton_wb)
 }
 \keyword{datasets}

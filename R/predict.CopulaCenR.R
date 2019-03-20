@@ -1,11 +1,12 @@
 #' Predictions from CopulaCenR regression models
 #'
-#' Predictions for new observations based on \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}
+#' Predictions for new observations based on \code{ic_spTran_copula}, \code{rc_spCox_copula},
+#' \code{ic_par_copula} and \code{rc_par_copula}.
 #'
 #' @name predict.CopulaCenR
 #' @aliases predict.CopulaCenR
-#' @param object a \code{CopulaCenR} object from \code{ic_sp_copula},
-#' \code{ic_par_copula} and \code{rc_par_copula}
+#' @param object a \code{CopulaCenR} object from \code{ic_spTran_copula},
+#' \code{rc_spCox_copula}, \code{ic_par_copula} and \code{rc_par_copula}
 #' @param newdata a data frame (see details)
 #' @param type \code{"lp"} for linear predictors or
 #' \code{"survival"} for marginal and joint survival probabilities
@@ -39,7 +40,7 @@
 #' @examples
 #' data(AREDS)
 #' # fit a Copula2-Sieve model
-#' copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+#' copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
 #'               l = 0, u = 15, m = 3, r = 3,
 #'               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 #' # Predicted probabilities for newdata
@@ -65,6 +66,24 @@ predict.CopulaCenR <- function(object, newdata, type = "lp", ...) {
         !"ind" %in% colnames(newdata) |
         !"time" %in% colnames(newdata)) {
       stop('when type is "survival", newdata must be a data frame with columns id, ind, time and covariates')
+    }
+
+    min1 <- min(object$indata1$Left,
+                object$indata1$Right[is.finite(object$indata1$Right)],
+                object$indata1$obs_time)
+    min2 <- min(object$indata2$Left,
+                object$indata2$Right[is.finite(object$indata2$Right)],
+                object$indata1$obs_time)
+    max1 <- max(object$indata1$Left,
+                object$indata1$Right[is.finite(object$indata1$Right)],
+                object$indata2$obs_time)
+    max2 <- max(object$indata2$Left,
+                object$indata2$Right[is.finite(object$indata2$Right)],
+                object$indata2$obs_time)
+
+    if (sum(newdata$time <= min(min1, min2)) > 0 |
+        sum(newdata$time > max(max1, max2)) > 0) {
+      stop('when type is "survival", the specified time should lie within the observed time range')
     }
 
   } else {

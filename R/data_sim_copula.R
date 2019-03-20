@@ -45,7 +45,7 @@
 #'
 #'
 #'
-#' The marginal survival distributions follow the standard parameterization in Wikipedia, which are listed below:
+#' The marginal survival distributions are listed below:
 #'
 #' The Weibull (PH) survival distribution is \deqn{\exp \{-(t/\lambda)^k  e^{Z^{\top}\beta}\},}
 #' with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape.

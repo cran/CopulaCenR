@@ -14,7 +14,7 @@ Under General Interval Censoring.
 http://arxiv.org/abs/1901.01918.
 }
 \usage{
-ic_par_copula(data, var_list, copula, m.dist = "Loglogistic",
+ic_par_copula(data, var_list, copula, m.dist = "Weibull",
   method = "BFGS", iter = 300, stepsize = 1e-05, hes = TRUE,
   control = list())
 }
@@ -42,6 +42,13 @@ default is 1e-5.}
 
 \item{control}{a list of control parameters for methods other than \code{"Newton"};
 see \code{?optim}.}
+}
+\value{
+a \code{CopulaCenR} object summarizing the model.
+Can be used as an input to general \code{S3} methods including
+\code{summary}, \code{print}, \code{plot}, \code{lines},
+\code{coef}, \code{logLik}, \code{AIC},
+\code{BIC}, \code{fitted}, \code{predict}.
 }
 \description{
 Fits a copula model with parametric margins for bivariate interval-censored data.
@@ -82,7 +89,7 @@ with \eqn{\alpha \in (0,1], \kappa > 0} and Kendall's \eqn{\tau = 1-2\alpha\kapp
 
 The supported marginal distributions are \code{"Weibull"} (proportional hazards),
 \code{"Gompertz"} (proportional hazards) and \code{"Loglogistic"} (proportional odds).
-These marginal distributions follow the standard parameterization in Wikipedia
+These marginal distributions are listed below
 and we assume the same baseline parameters between two margins. \cr
 
 The Weibull (PH) survival distribution is \deqn{\exp \{-(t/\lambda)^k  e^{Z^{\top}\beta}\},}
@@ -100,10 +107,10 @@ Optimization methods can be all methods (except \code{"Brent"}) from \code{optim
 Users can also use \code{"Newton"} (from \code{nlm}).
 }
 \examples{
-# fit a Copula2-Loglogistic model
+# fit a Copula2-Weibull model
 data(AREDS)
-copula2_loglog <- ic_par_copula(data = AREDS, copula = "Copula2",
-                  m.dist = "Loglogistic",
-                  var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
-summary(copula2_loglog)
+copula2_wb <- ic_par_copula(data = AREDS, copula = "Copula2",
+                  m.dist = "Weibull",
+                  var_list = c("ENROLLAGE","rs2284665"))
+summary(copula2_wb)
 }

@@ -7,7 +7,8 @@
 \method{fitted}{CopulaCenR}(object, type = "lp", ...)
 }
 \arguments{
-\item{object}{a \code{CopulaCenR} object from \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}}
+\item{object}{a \code{CopulaCenR} object from \code{ic_spTran_copula},
+\code{rc_spCox_copula}, \code{ic_par_copula} and \code{rc_par_copula}}
 
 \item{type}{\code{"lp"} for linear predictors or
 \code{"survival"} for marginal and joint survival probabilities}
@@ -23,7 +24,8 @@ If \code{type = "survival"}, it returns a data frame with \code{id},
 \code{S2} and \code{S12} (the predicted joint survival probabilities)
 }
 \description{
-Fitted values based on models from \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}.
+Fitted values based on models from \code{ic_spTran_copula}, \code{rc_spCox_copula},
+\code{ic_par_copula} and \code{rc_par_copula}.
 }
 \details{
 When the argument \code{type = "lp"}, it gives a linear predictor for each margin
@@ -38,7 +40,7 @@ left bound (if right bound is infinity). \cr
 \examples{
 data(AREDS)
 # fit a Copula2-Sieve model
-copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
               l = 0, u = 15, m = 3, r = 3,
               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 output <- fitted(object = copula2_sp)

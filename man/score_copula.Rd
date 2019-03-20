@@ -8,7 +8,8 @@ score_copula(object, var_score)
 }
 \arguments{
 \item{object}{The output object from the main functions
-(\code{rc_par_copula}, \code{ic_sp_copula}, \code{ic_par_copula})
+(\code{rc_par_copula}, \code{rc_spCox_copula},
+\code{ic_spTran_copula}, \code{ic_par_copula})
 under the null hypothesis}
 
 \item{var_score}{the list of covariates to be tested by the score test}
@@ -23,7 +24,7 @@ Generalized score test on covariate effect(s) under a fitted copula model.
 # Score test for "rs2284665" in AREDS data
 # fit a Copula2-semiparametric model under NULL
 data(AREDS)
-copula2_sp_null <- ic_sp_copula(data = AREDS, copula = "Copula2",
+copula2_sp_null <- ic_spTran_copula(data = AREDS, copula = "Copula2",
                    l = 0, u = 15, m = 3, r = 3,
                    var_list = c("ENROLLAGE","SevScaleBL"))
 score_copula(object = copula2_sp_null, var_score = "rs2284665")

@@ -1,10 +1,12 @@
 #' Plotting for CopulaCenR fits
 #'
-#' Plotting for CopulaCenR fits from \code{ic_sp_copula}, \code{ic_par_copula}, \code{rc_par_copula}
+#' Plotting for CopulaCenR fits from  \code{ic_spTran_copula}, \code{rc_spCox_copula},
+#' \code{ic_par_copula} and \code{rc_par_copula}.
 #'
 #' @name plot.CopulaCenR
 #' @aliases plot.CopulaCenR
-#' @param x an object of \code{ic_sp_copula} or \code{ic_par_copula} or \code{rc_par_copula}
+#' @param x an object of \code{ic_spTran_copula} or \code{rc_spCox_copula}
+#' or \code{ic_par_copula} or \code{rc_par_copula}
 #' @param y new data frame with colname names \code{id}, \code{ind} and \code{covariate}
 #' @param newdata new data frame (ignored if \code{y} is included)
 #' @param class one of "joint", "conditional" or "marginal"
@@ -19,7 +21,7 @@
 #' @param cond_margin for \code{class = "conditional"} only; indicator of the margin
 #' where event has occurred (either 1 or 2); default is 2 for margin 2
 #' @param cond_time for \code{class = "conditional"} only; the time
-#' by which event has occurred in the margin indicated by cond_margin;
+#' by which event has occurred in the margin indicated by \code{cond_margin};
 #' must be smaller than the largest observed time
 #' @param type type of plot with default \code{type = "l"}.
 #' @param xlab a title for the x axis.
@@ -76,7 +78,7 @@
 #' @examples
 #' data(AREDS)
 #' # fit a Copula2-Sieve model
-#' copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+#' copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
 #'               l = 0, u = 15, m = 3, r = 3,
 #'               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 #' newdata = data.frame(id = rep(1, each=2), ind = rep(c(1,2),1),

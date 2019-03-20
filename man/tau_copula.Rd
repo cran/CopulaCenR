@@ -64,3 +64,13 @@ The Joe copula Kendall's \eqn{\tau = 1 - 4 \sum_{k=1}^{\infty} \frac{1}{k(\eta k
 
 The Two-parameter copula (\code{Copula2}) Kendall's \eqn{\tau = 1-2\alpha\kappa/(2\kappa+1)}. \cr
 }
+\examples{
+# fit a Copula2-Semiparametric model
+data(AREDS)
+copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
+              l = 0, u = 15, m = 3, r = 3,
+              var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
+tau_copula(eta = as.numeric(coef(copula2_sp)[c("alpha","kappa")]),
+           copula = "Copula2")
+
+}

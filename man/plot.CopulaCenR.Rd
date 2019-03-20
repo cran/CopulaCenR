@@ -11,7 +11,8 @@
   cex.lab = 1.4, cex.axis = 1.4, legend = TRUE, ...)
 }
 \arguments{
-\item{x}{an object of \code{ic_sp_copula} or \code{ic_par_copula} or \code{rc_par_copula}}
+\item{x}{an object of \code{ic_spTran_copula} or \code{rc_spCox_copula}
+or \code{ic_par_copula} or \code{rc_par_copula}}
 
 \item{y}{new data frame with colname names \code{id}, \code{ind} and \code{covariate}}
 
@@ -32,7 +33,7 @@ will override evalPoints if non-NULL}
 (either 1 or 2); default is 1 for margin 1}
 
 \item{cond_time}{for \code{class = "conditional"} only; the time
-by which event has occurred in the margin indicated by cond_margin;
+by which event has occurred in the margin indicated by \code{cond_margin};
 must be smaller than the largest observed time}
 
 \item{cond_margin}{for \code{class = "conditional"} only; indicator of the margin
@@ -59,7 +60,8 @@ a 3D joint survival distribution plot if \code{class = "joint"};
 a 2D survival distribution plot if \code{class} = \code{"marginal"} or \code{"conditional"}.
 }
 \description{
-Plotting for CopulaCenR fits from \code{ic_sp_copula}, \code{ic_par_copula}, \code{rc_par_copula}
+Plotting for CopulaCenR fits from  \code{ic_spTran_copula}, \code{rc_spCox_copula},
+\code{ic_par_copula} and \code{rc_par_copula}.
 }
 \details{
 y must be a data frame with columns \code{id} (subject id),
@@ -94,7 +96,7 @@ through the argument \code{plot_margin}. See the example for details. \cr
 \examples{
 data(AREDS)
 # fit a Copula2-Sieve model
-copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
               l = 0, u = 15, m = 3, r = 3,
               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 newdata = data.frame(id = rep(1, each=2), ind = rep(c(1,2),1),

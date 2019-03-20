@@ -10,7 +10,8 @@
   plotly_object = NULL, ...)
 }
 \arguments{
-\item{x}{an object of \code{ic_sp_copula, ic_par_copula, rc_par_copula}}
+\item{x}{an object of  \code{ic_spTran_copula}, \code{rc_spCox_copula},
+\code{ic_par_copula}, \code{rc_par_copula}}
 
 \item{y}{new data frame with colname names \code{id}, \code{ind} and \code{covariate}}
 
@@ -45,7 +46,8 @@ a 2D survival distribution plot if \code{class} \code{= "marginal"}
 or \code{"conditional"}.
 }
 \description{
-Plotting for CopulaCenR fits from \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}.
+Plotting for CopulaCenR fits from  \code{ic_spTran_copula}, \code{rc_spCox_copula},
+\code{ic_par_copula} and \code{rc_par_copula}.
 }
 \details{
 y must be a data frame with columns \code{id} (subject id),
@@ -84,7 +86,7 @@ through the argument \code{plotly_object}. See the example for details.\cr
 \examples{
 data(AREDS)
 # fit a Copula2-Sieve model
-copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
               l = 0, u = 15, m = 3, r = 3,
               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 newdata = data.frame(id = rep(1:3, each=2), ind = rep(c(1,2),3),
@@ -108,7 +110,7 @@ plot(x = copula2_sp, class = "conditional",
 lines(x = copula2_sp, class = "conditional",
       newdata = newdata[newdata$id==2,],
      cond_margin = 2, cond_time = 5, lty = 2)
-legend("bottomleft", c("GG","GT"), lty = c(1,2))
+legend("bottomleft", c("id: 1","id: 2"), lty = c(1,2))
 
 # Plot joint survival probabilities
 plot3d <- plot(x = copula2_sp, class = "joint",

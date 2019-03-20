@@ -2,18 +2,18 @@
 #'
 #' @description Fits a copula model with semiparametric margins for bivariate interval-censored data.
 #'
-#' @name ic_sp_copula
-#' @aliases ic_sp_copula
+#' @name ic_spTran_copula
+#' @aliases ic_spTran_copula
 #' @param data a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two units in each subject),
 #' \code{Left} (0 if left-censoring), \code{Right} (Inf if right-censoring), \code{status} (0 for right-censoring,
 #' 1 for interval-censoring or left-censoring), and \code{covariates} by column.
 #' @param var_list the list of covariates to be fitted into the copula model.
 #' @param copula Types of copula model.
-#' @param r postive transformation parameter for the semi-parametric linear transformation model.
+#' @param r postive transformation parameter for the semiparametric transformation marginal model.
 #' @param m integer, degree of Berstein polynomials for both margins; default is 3
 #' @param l the left bound for all \code{Left} and \code{Right} endpoints of observed finite intervals;
 #' default is 0.
-#' @param u the right bound for all \code{Left} and \code{Right} endpoints of observed finite intervalsl;
+#' @param u the right bound for all \code{Left} and \code{Right} endpoints of observed finite intervals;
 #' has to be a finite value
 #' @param method optimization method (see \code{?optim}); default is \code{"BFGS"};
 #' also can be \code{"Newton"} (see \code{?nlm}).
@@ -93,21 +93,21 @@
 #' @return a \code{CopulaCenR} object summarizing the model.
 #' Can be used as an input to general \code{S3} methods including
 #' \code{summary}, \code{print}, \code{plot}, \code{lines},
-#' \code{coef}, \code{logLik], \code{AIC},
+#' \code{coef}, \code{logLik}, \code{AIC},
 #' \code{BIC}, \code{fitted}, \code{predict}.
 #' @examples
 #' # fit a Copula2-Semiparametric model
 #' data(AREDS)
-#' copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+#' copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
 #'               l = 0, u = 15, m = 3, r = 3,
 #'               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 #'summary(copula2_sp)
 
 
 
-ic_sp_copula <- function(data, var_list, l=0, u, copula = "Copula2", m = 3, r = 3,
+ic_spTran_copula <- function(data, var_list, l=0, u, copula = "Copula2", m = 3, r = 3,
                          method = "BFGS", iter=300, stepsize=1e-6, hes = TRUE,
-                         control = list(reltol = 1e-6)){
+                         control = list()){
 
   # first screen the inputs: copula, m.dist, method #
   if (!is.data.frame(data)) {
@@ -187,7 +187,7 @@ ic_sp_copula <- function(data, var_list, l=0, u, copula = "Copula2", m = 3, r = 
     # model_step1a
     beta <- model_step1a$par[1:p]
     phi <- model_step1a$par[(p+1):(p+1+m)]
-    ep<-cumsum(exp(phi))
+    ep <- cumsum(exp(phi))
   }
 
 
@@ -195,15 +195,15 @@ ic_sp_copula <- function(data, var_list, l=0, u, copula = "Copula2", m = 3, r = 
   ############ Step 1b ##############
   ###################################
   if (copula == "AMH") {
-    eta_ini <- 0.5
+    eta_ini <- 0
   }
 
   else if (copula == "Copula2") {
-    eta_ini <- c(1, 1)
+    eta_ini <- c(0, 0)
   }
 
   else {
-    eta_ini <- 2
+    eta_ini <- 0
   }
 
 
@@ -212,18 +212,26 @@ ic_sp_copula <- function(data, var_list, l=0, u, copula = "Copula2", m = 3, r = 
                         beta = beta, ep = ep, x1 = x1, x2 = x2, bl1 = bl1,
                         br1 = br1, bl2 = bl2, br2 = br2, indata1 = indata1,
                         indata2 = indata2, r = r, copula = copula)
-    eta_ini <- model_step1b$estimate
+    eta_ini <- exp(model_step1b$estimate)
   } else {
     model_step1b <- optim(par = eta_ini, ic_copula_log_lik_sieve_eta,
                           method = method,  control = control, hessian = FALSE,
                          beta = beta, ep = ep, x1 = x1, x2 = x2, bl1 = bl1,
                          br1 = br1, bl2 = bl2, br2 = br2, indata1 = indata1,
                          indata2 = indata2, r = r, copula = copula)
-    eta_ini <- model_step1b$par
+    eta_ini <- exp(model_step1b$par)
   }
 
+  # Quality check for step 1b estimates
   # AMH shall be between 0 and 1
-  if (copula == "AMH" & eta_ini[1] > 1) {eta_ini = 0.5}
+  if (copula == "AMH" & eta_ini[1] > 1) {eta_ini <- 0.5}
+  # Gumbel shall be >= 1
+  if (copula == "Gumbel" & eta_ini[1] < 1) {eta_ini <- 1}
+  # Joe shall be >= 1
+  if (copula == "Joe" & eta_ini[1] < 1) {eta_ini <- 1}
+  # Copula2 alpha shall be between 0 and 1
+  if (copula == "Copula2" & eta_ini[1] > 1) {eta_ini[1] <- 0.5}
+
 
   ###################################
   ############ Step 2 ###############

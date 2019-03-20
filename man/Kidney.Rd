@@ -31,5 +31,11 @@ CA McGilchrist, CW Aisbett (1991), Regression with frailty in survival analysis.
 }
 \examples{
 data(Kidney)
+clayton_cox <- rc_spCox_copula(data = Kidney,
+               var_list = c("age","sex","disease"),
+               copula = "Clayton",
+               method = "BFGS",
+               B = 2)
+summary(clayton_cox)
 }
 \keyword{datasets}

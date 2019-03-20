@@ -104,9 +104,16 @@ m_copula <- function(object, grid.length, newdata, evalTimes = NULL){ # length o
   }
 
   # RC, parametric margins
-  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) ) {
+  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) & !isTRUE(object$cox) ) {
 
     output <- m_rc(object, grid.length, newdata, evalTimes = evalTimes)
+
+  }
+
+  # RC, cox margins
+  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) & isTRUE(object$cox) ) {
+
+    output <- m_cox(object, grid.length, newdata, evalTimes = evalTimes)
 
   }
 
@@ -135,9 +142,16 @@ cond_copula <- function(object, grid.length, newdata1, newdata2, cond_time, cond
   }
 
   # RC, parametric margins
-  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) ) {
+  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) & !isTRUE(object$cox)) {
 
     output <- cond_rc(object, grid.length, newdata1, newdata2, cond_time, cond_margin = cond_margin, evalTimes = evalTimes)
+
+  }
+
+  # RC, cox margins
+  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) & isTRUE(object$cox)) {
+
+    output <- cond_cox(object, grid.length, newdata1, newdata2, cond_time, cond_margin = cond_margin, evalTimes = evalTimes)
 
   }
 
@@ -165,9 +179,16 @@ surv2_copula <- function(object, grid.length1, grid.length2, newdata1, newdata2,
   }
 
   # RC, parametric margins
-  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1)) ) {
+  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1))  & !isTRUE(object$cox)) {
 
     output <- surv2_rc(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes1 = evalTimes1, evalTimes2 = evalTimes2)
+
+  }
+
+  # RC, cox margins
+  else if (!is.numeric(object$m) & ("obs_time" %in% colnames(object$indata1))  & isTRUE(object$cox)) {
+
+    output <- surv2_cox(object, grid.length1, grid.length2, newdata1, newdata2, evalTimes1 = evalTimes1, evalTimes2 = evalTimes2)
 
   }
 
@@ -300,8 +321,6 @@ m_rc <- function(object, grid.length, margin, evalTimes = NULL){ # length of mar
 
   copula <- object$copula
   m.dist <- object$m.dist
-  n.cons <- object$n.cons # NULL if not piecewise
-  quantiles <- object$quantiles # NULL if not piecewise
   p <- dim(object$x1)[2]
 
   # create grids for two events; assume same grid for both events
@@ -339,23 +358,6 @@ m_rc <- function(object, grid.length, margin, evalTimes = NULL){ # length of mar
       S1<-exp(b/a*(1-exp(a*grid1[i]))*exp(margin1%*%beta))
     }
 
-
-    if (m.dist == "Piecewise") {
-
-      Lambda1<-0 # left eye
-
-      # different parameterization
-      for (k in 1:n.cons)
-      {
-        Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-      }
-
-      beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-      S1<-exp(-Lambda1*exp(margin1%*%beta))
-    }
-
-
     m_rc <- c(m_rc, S1)
 
   }
@@ -367,6 +369,71 @@ m_rc <- function(object, grid.length, margin, evalTimes = NULL){ # length of mar
 }
 
 
+
+### marginal survival, rc, cox margins ###
+#' @importFrom stats approx
+m_cox <- function(object, grid.length, margin, evalTimes = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
+
+  # data
+  l1 <- min(object$indata1[,"obs_time"])
+  u1 <- max(object$indata1[,"obs_time"][is.finite(object$indata1[,"obs_time"])])
+  l2 <-  min(object$indata2[,"obs_time"])
+  u2 <- max(object$indata2[,"obs_time"][is.finite(object$indata2[,"obs_time"])])
+
+  copula <- object$copula
+  p <- dim(object$x1)[2]
+
+  # create grids for two events; assume same grid for both events
+  l <- min(l1, l2)
+  u <- max(u1, u2)
+
+  if (is.null(evalTimes)) {grid1 <- seq(l,u,grid.length)}
+  if (!is.null(evalTimes)) {grid1 <- evalTimes}
+
+  margin1 <- margin
+  m_cox <-  as.numeric()
+
+  if (copula == "Copula2") {
+    beta <- object$estimate[3:(2+p)]
+  } else {
+    beta <- object$estimate[2:(1+p)]
+  }
+
+
+  # Breslow estimator #
+  t1 <- object$indata1[, "obs_time"]
+  t2 <- object$indata2[, "obs_time"]
+  c1 <- object$indata1[, "status"]
+  c2 <- object$indata2[, "status"]
+  t <- c(t1, t2)
+  c <- c(c1, c2)
+  x12 <- rbind(object$x1, object$x2)
+  tab <- data.frame(table(t[c == 1]))
+  y <- as.numeric(levels(tab[, 1]))[tab[, 1]] # sorted unique event times
+  d <- tab[, 2] # number of events at each unique time (in case of tied events)
+
+  Lambda <- 0
+  Lambda <- 0
+  h0 <- d/sapply(y,
+                 function(x) {
+                   sum(exp(as.matrix(x12[t >= x, ]) %*% beta))
+                 })
+  lambda <- rowSums(sapply(y, function(x) t==x) %*% h0 * c)
+  Lambda <- as.numeric(sapply(y, function(x) t>=x) %*% h0)
+
+  # survival #
+  for (i in 1:length(grid1)){
+
+    Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+    S1 <- exp(-Lambda1*exp(margin1%*%beta))
+    m_cox <- c(m_cox, S1)
+
+  }
+
+  output <- list(grid=grid1, m = m_cox)
+  return(output)
+
+}
 
 ### conditional survival, ic, sieve margins ###
 cond_sieve <- function(object, grid.length, margin1, margin2, cond_time, cond_margin = 2, evalTimes = NULL){ # cond_margin = 2 means conditioing on 2nd eye
@@ -1151,8 +1218,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
 
   copula <- object$copula
   m.dist <- object$m.dist
-  n.cons <- object$n.cons # NULL if not piecewise
-  quantiles <- object$quantiles # NULL if not piecewise
   p <- dim(object$x1)[2]
 
 
@@ -1208,27 +1273,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
         }
 
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
-
         surv2[i,j] <- S1 - (S1^(-eta)+S2^(-eta)-1)^(-1/eta)
       }
     }
@@ -1264,25 +1308,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         surv2[i,j] <- S1 - exp(-((-log(S1))^eta + (-log(S2))^eta)^(1/eta))
@@ -1323,25 +1348,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         surv2[i,j] <- S1 - (1/eta) * log(1 + (exp(eta*S1)-1)*(exp(eta*S2)-1)/(exp(eta)-1)) # frank
       }
     }
@@ -1375,25 +1381,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         surv2[i,j] <- S1 - S1*S2/(1-eta*(1-S1)*(1-S2)) # AMH
@@ -1433,25 +1420,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
 
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         surv2[i,j] <- S1 - (1 - ((1-S1)^eta + (1-S2)^eta - ((1-S1)^eta)*((1-S2)^eta) )^(1/eta)) # Joe
       }
     }
@@ -1487,26 +1455,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          alpha<-object$estimate[(n.cons+1)] # association
-          kappa<-object$estimate[(n.cons+2)] # association
-          beta<-object$estimate[(n.cons+3):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         surv2[i,j] <- S1- (1+(((S1)^(-1/kappa)-1)^(1/alpha) + ((S2)^(-1/kappa)-1)^(1/alpha))^(alpha))^(-kappa)
@@ -1551,27 +1499,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           S2<-exp(b/a*(1-exp(a*grid2_2[j]))*exp(margin2%*%beta))
         }
 
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1_2[i])), apply(cbind(rep(quantiles[k+1],length(grid1_2[i])),grid1_2[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2_2[j])), apply(cbind(rep(quantiles[k+1],length(grid2_2[j])),grid2_2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
-
         denumerator[i,j] <- S1 - (S1^(-eta)+S2^(-eta)-1)^(-1/eta)
       }
     }
@@ -1607,25 +1534,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1_2[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2_2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1_2[i])), apply(cbind(rep(quantiles[k+1],length(grid1_2[i])),grid1_2[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2_2[j])), apply(cbind(rep(quantiles[k+1],length(grid2_2[j])),grid2_2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         denumerator[i,j] <- S1 - exp(-((-log(S1))^eta + (-log(S2))^eta)^(1/eta))
@@ -1666,25 +1574,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           S2<-exp(b/a*(1-exp(a*grid2_2[j]))*exp(margin2%*%beta))
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1_2[i])), apply(cbind(rep(quantiles[k+1],length(grid1_2[i])),grid1_2[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2_2[j])), apply(cbind(rep(quantiles[k+1],length(grid2_2[j])),grid2_2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         denumerator[i,j] <- S1 - (1/eta) * log(1 + (exp(eta*S1)-1)*(exp(eta*S2)-1)/(exp(eta)-1)) # frank
       }
     }
@@ -1718,25 +1607,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1_2[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2_2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1_2[i])), apply(cbind(rep(quantiles[k+1],length(grid1_2[i])),grid1_2[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2_2[j])), apply(cbind(rep(quantiles[k+1],length(grid2_2[j])),grid2_2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         denumerator[i,j] <- S1 - S1*S2/(1-eta*(1-S1)*(1-S2)) # AMH
@@ -1776,25 +1646,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
 
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1_2[i])), apply(cbind(rep(quantiles[k+1],length(grid1_2[i])),grid1_2[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2_2[j])), apply(cbind(rep(quantiles[k+1],length(grid2_2[j])),grid2_2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         denumerator[i,j] <- S1 - (1 - ((1-S1)^eta + (1-S2)^eta - ((1-S1)^eta)*((1-S2)^eta) )^(1/eta)) # Joe
       }
     }
@@ -1832,26 +1683,6 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
           S2<-exp(b/a*(1-exp(a*grid2_2[j]))*exp(margin2%*%beta))
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1_2[i])), apply(cbind(rep(quantiles[k+1],length(grid1_2[i])),grid1_2[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2_2[j])), apply(cbind(rep(quantiles[k+1],length(grid2_2[j])),grid2_2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          alpha<-object$estimate[(n.cons+1)] # association
-          kappa<-object$estimate[(n.cons+2)] # association
-          beta<-object$estimate[(n.cons+3):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         denumerator[i,j] <- S1- (1+(((S1)^(-1/kappa)-1)^(1/alpha) + ((S2)^(-1/kappa)-1)^(1/alpha))^(alpha))^(-kappa)
       }
     }
@@ -1872,6 +1703,294 @@ cond_rc <- function(object, grid.length, margin1, margin2, cond_time, cond_margi
 }
 
 
+
+### conditional survival, rc, cox margins ###
+#' @importFrom stats approx
+cond_cox <- function(object, grid.length, margin1, margin2, cond_time, cond_margin = 2, evalTimes = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
+
+  # data
+  u1 <- max(object$indata1[,"obs_time"][is.finite(object$indata1[,"obs_time"])])
+  u2 <- max(object$indata2[,"obs_time"][is.finite(object$indata2[,"obs_time"])])
+
+  copula <- object$copula
+  p <- dim(object$x1)[2]
+
+
+  # create grids for two events; assume same grid for both events
+  if (cond_margin == 2){
+    if (is.null(evalTimes)) {grid1 <- seq(0,(u1-cond_time),grid.length) + cond_time}
+    if (!is.null(evalTimes)) {grid1 <- evalTimes + cond_time}
+    grid2 <- cond_time
+  }
+  if (cond_margin == 1){
+    if (is.null(evalTimes)) {grid1 <- seq(0,(u2-cond_time),grid.length) + cond_time}
+    if (!is.null(evalTimes)) {grid1 <- evalTimes + cond_time}
+    grid2 <- cond_time
+  }
+
+  # beta and eta
+  if (copula == "Copula2") {
+    beta <- object$estimate[3:(2+p)]
+    alpha <- object$estimate[1]
+    kappa <- object$estimate[2]
+  } else {
+    beta <- object$estimate[2:(1+p)]
+    eta <- object$estimate[1]
+  }
+
+  # Breslow estimator #
+  t1 <- object$indata1[, "obs_time"]
+  t2 <- object$indata2[, "obs_time"]
+  c1 <- object$indata1[, "status"]
+  c2 <- object$indata2[, "status"]
+  t <- c(t1, t2)
+  c <- c(c1, c2)
+  x12 <- rbind(object$x1, object$x2)
+  tab <- data.frame(table(t[c == 1]))
+  y <- as.numeric(levels(tab[, 1]))[tab[, 1]] # sorted unique event times
+  d <- tab[, 2] # number of events at each unique time (in case of tied events)
+
+  Lambda <- 0
+  Lambda <- 0
+  h0 <- d/sapply(y,
+                 function(x) {
+                   sum(exp(as.matrix(x12[t >= x, ]) %*% beta))
+                 })
+  lambda <- rowSums(sapply(y, function(x) t==x) %*% h0 * c)
+  Lambda <- as.numeric(sapply(y, function(x) t>=x) %*% h0)
+
+
+  ### first, calculate the numerator of Pr(T1 >5+t1 and T2 < 5)
+  surv2 <- matrix(NA,nrow=length(grid1),ncol=length(grid2))
+  rownames(surv2) <- grid1
+  colnames(surv2) <- grid2
+
+
+  if (copula == "Clayton") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+
+        surv2[i,j] <- S1 - (S1^(-eta)+S2^(-eta)-1)^(-1/eta)
+      }
+    }
+  }
+
+
+
+  if (copula == "Gumbel") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- S1 - exp(-((-log(S1))^eta + (-log(S2))^eta)^(1/eta))
+
+      }
+    }
+  }
+
+
+
+  if (copula == "Frank") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- S1 - (1/eta) * log(1 + (exp(eta*S1)-1)*(exp(eta*S2)-1)/(exp(eta)-1)) # frank
+      }
+    }
+  }
+
+  if (copula == "AMH") {
+
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- S1 - S1*S2/(1-eta*(1-S1)*(1-S2)) # AMH
+      }
+    }
+  }
+
+
+  if (copula == "Joe") {
+
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- S1 - (1 - ((1-S1)^eta + (1-S2)^eta - ((1-S1)^eta)*((1-S2)^eta) )^(1/eta)) # Joe
+      }
+    }
+  }
+
+
+  if (copula == "Copula2") {
+
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- S1- (1+(((S1)^(-1/kappa)-1)^(1/alpha) + ((S2)^(-1/kappa)-1)^(1/alpha))^(alpha))^(-kappa)
+      }
+    }
+  }
+
+
+  ### Then, calculate the scalar value of joint probability of Pr(T1 > 5 and T2< 5)
+  grid1_2 = cond_time
+  grid2_2 = cond_time
+  denumerator <- matrix(NA,nrow=length(grid1_2),ncol=length(grid2_2))
+
+
+  if (copula == "Clayton") {
+
+    for (i in 1:nrow(denumerator)){
+      for (j in 1:ncol(denumerator)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1_2[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2_2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+
+        denumerator[i,j] <- S1 - (S1^(-eta)+S2^(-eta)-1)^(-1/eta)
+      }
+    }
+  }
+
+
+
+  if (copula == "Gumbel") {
+
+    for (i in 1:nrow(denumerator)){
+      for (j in 1:ncol(denumerator)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1_2[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2_2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        denumerator[i,j] <- S1 - exp(-((-log(S1))^eta + (-log(S2))^eta)^(1/eta))
+
+      }
+    }
+  }
+
+
+
+  if (copula == "Frank") {
+
+    for (i in 1:nrow(denumerator)){
+      for (j in 1:ncol(denumerator)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1_2[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2_2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        denumerator[i,j] <- S1 - (1/eta) * log(1 + (exp(eta*S1)-1)*(exp(eta*S2)-1)/(exp(eta)-1)) # frank
+      }
+    }
+  }
+
+  if (copula == "AMH") {
+
+    for (i in 1:nrow(denumerator)){
+      for (j in 1:ncol(denumerator)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1_2[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2_2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        denumerator[i,j] <- S1 - S1*S2/(1-eta*(1-S1)*(1-S2)) # AMH
+      }
+    }
+  }
+
+
+  if (copula == "Joe") {
+
+    for (i in 1:nrow(denumerator)){
+      for (j in 1:ncol(denumerator)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1_2[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2_2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        denumerator[i,j] <- S1 - (1 - ((1-S1)^eta + (1-S2)^eta - ((1-S1)^eta)*((1-S2)^eta) )^(1/eta)) # Joe
+      }
+    }
+  }
+
+
+  if (copula == "Copula2") {
+
+    for (i in 1:nrow(denumerator)){
+      for (j in 1:ncol(denumerator)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1_2[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2_2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        denumerator[i,j] <- S1- (1+(((S1)^(-1/kappa)-1)^(1/alpha) + ((S2)^(-1/kappa)-1)^(1/alpha))^(alpha))^(-kappa)
+      }
+    }
+  }
+
+
+  condition <- surv2%*%solve(denumerator)
+
+  if (cond_margin == 2){
+    output <- list(grid1=grid1, grid2=grid2, condition = condition) # vector grid is greater than cond_time, smaller than u
+  }
+  if (cond_margin == 1){
+    output <- list(grid1=grid2, grid2=grid1, condition = condition) # vector grid is greater than cond_time, smaller than u
+  }
+  return(output)
+
+
+}
 
 ### joint survival, ic, sieve margins ###
 surv2_sieve <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes1 = NULL, evalTimes2 = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
@@ -2285,8 +2404,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
 
   copula <- object$copula
   m.dist <- object$m.dist
-  n.cons <- object$n.cons # NULL if not piecewise
-  quantiles <- object$quantiles # NULL if not piecewise
   p <- dim(object$x1)[2]
 
   # create grids for two events; assume same grid for both events
@@ -2329,27 +2446,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
         }
 
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
-
         surv2[i,j] <- (S1^(-eta)+S2^(-eta)-1)^(-1/eta)
       }
     }
@@ -2385,25 +2481,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         surv2[i,j] <- exp(-((-log(S1))^eta + (-log(S2))^eta)^(1/eta))
@@ -2444,25 +2521,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         surv2[i,j] <- (1/eta) * log(1 + (exp(eta*S1)-1)*(exp(eta*S2)-1)/(exp(eta)-1)) # frank
       }
     }
@@ -2496,25 +2554,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
           b <- baseline[2]
           S1<-exp(b/a*(1-exp(a*grid1[i]))*exp(margin1%*%beta))
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
-        }
-
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
         }
 
         surv2[i,j] <- S1*S2/(1-eta*(1-S1)*(1-S2)) # AMH
@@ -2554,25 +2593,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
 
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          eta<-object$estimate[n.cons+1] # association
-          beta<-object$estimate[(n.cons+2):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         surv2[i,j] <- 1 - ((1-S1)^eta + (1-S2)^eta - ((1-S1)^eta)*((1-S2)^eta) )^(1/eta) # Joe
       }
     }
@@ -2610,26 +2630,6 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
           S2<-exp(b/a*(1-exp(a*grid2[j]))*exp(margin2%*%beta))
         }
 
-        if (m.dist == "Piecewise") {
-
-          Lambda1<-0 # left eye
-          Lambda2<-0 # right eye
-
-          # different parameterization
-          for (k in 1:n.cons)
-          {
-            Lambda1<-Lambda1+ object$estimate[k] * apply(cbind(rep(0,length(grid1[i])), apply(cbind(rep(quantiles[k+1],length(grid1[i])),grid1[i]),1,min) - quantiles[k]), 1, max)
-            Lambda2<-Lambda2+ object$estimate[k] * apply(cbind(rep(0,length(grid2[j])), apply(cbind(rep(quantiles[k+1],length(grid2[j])),grid2[j]),1,min) - quantiles[k]), 1, max)
-          }
-
-          alpha<-object$estimate[(n.cons+1)] # association
-          kappa<-object$estimate[(n.cons+2)] # association
-          beta<-object$estimate[(n.cons+3):length(object$estimate)] # coefficients
-
-          S1<-exp(-Lambda1*exp(margin1%*%beta))
-          S2<-exp(-Lambda2*exp(margin2%*%beta))
-        }
-
         surv2[i,j] <- (1+(((S1)^(-1/kappa)-1)^(1/alpha) + ((S2)^(-1/kappa)-1)^(1/alpha))^(alpha))^(-kappa)
       }
     }
@@ -2642,7 +2642,164 @@ surv2_rc <- function(object, grid.length1, grid.length2, margin1, margin2, evalT
 
 
 
+### joint survival, rc, cox margins ###
+#' @importFrom stats approx
+surv2_cox <- function(object, grid.length1, grid.length2, margin1, margin2, evalTimes1 = NULL, evalTimes2 = NULL){ # length of margin1/margin2 is the same as p = # of covariates in object
 
+  # data
+  l1 <- min(object$indata1[,"obs_time"])
+  u1 <- max(object$indata1[,"obs_time"][is.finite(object$indata1[,"obs_time"])])
+  l2 <-  min(object$indata2[,"obs_time"])
+  u2 <- max(object$indata2[,"obs_time"][is.finite(object$indata2[,"obs_time"])])
+
+  copula <- object$copula
+  p <- dim(object$x1)[2]
+
+  # create grids for two events; assume same grid for both events
+  if (is.null(evalTimes1)) {grid1 = seq(l1,u1,grid.length1); grid2 = seq(l2,u2,grid.length2)}
+  if (!is.null(evalTimes1)) {grid1 = evalTimes1; grid2 = evalTimes2}
+
+  # beta and eta
+  if (copula == "Copula2") {
+    beta <- object$estimate[3:(2+p)]
+    alpha <- object$estimate[1]
+    kappa <- object$estimate[2]
+  } else {
+    beta <- object$estimate[2:(1+p)]
+    eta <- object$estimate[1]
+  }
+
+  # Breslow estimator #
+  t1 <- object$indata1[, "obs_time"]
+  t2 <- object$indata2[, "obs_time"]
+  c1 <- object$indata1[, "status"]
+  c2 <- object$indata2[, "status"]
+  t <- c(t1, t2)
+  c <- c(c1, c2)
+  x12 <- rbind(object$x1, object$x2)
+  tab <- data.frame(table(t[c == 1]))
+  y <- as.numeric(levels(tab[, 1]))[tab[, 1]] # sorted unique event times
+  d <- tab[, 2] # number of events at each unique time (in case of tied events)
+
+  Lambda <- 0
+  Lambda <- 0
+  h0 <- d/sapply(y,
+                 function(x) {
+                   sum(exp(as.matrix(x12[t >= x, ]) %*% beta))
+                 })
+  lambda <- rowSums(sapply(y, function(x) t==x) %*% h0 * c)
+  Lambda <- as.numeric(sapply(y, function(x) t>=x) %*% h0)
+
+  # joint survival probability
+  surv2 <- matrix(NA,nrow=length(grid1),ncol=length(grid2))
+  rownames(surv2) <- grid1
+  colnames(surv2) <- grid2
+
+
+  if (copula == "Clayton") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- (S1^(-eta)+S2^(-eta)-1)^(-1/eta)
+      }
+    }
+  }
+
+
+
+  if (copula == "Gumbel") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- exp(-((-log(S1))^eta + (-log(S2))^eta)^(1/eta))
+
+      }
+    }
+  }
+
+
+
+  if (copula == "Frank") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- (1/eta) * log(1 + (exp(eta*S1)-1)*(exp(eta*S2)-1)/(exp(eta)-1)) # frank
+      }
+    }
+  }
+
+
+
+  if (copula == "AMH") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- S1*S2/(1-eta*(1-S1)*(1-S2)) # AMH
+      }
+    }
+  }
+
+
+  if (copula == "Joe") {
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- 1 - ((1-S1)^eta + (1-S2)^eta - ((1-S1)^eta)*((1-S2)^eta) )^(1/eta) # Joe
+      }
+    }
+  }
+
+
+  if (copula == "Copula2") {
+
+    for (i in 1:nrow(surv2)){
+      for (j in 1:ncol(surv2)){
+
+        Lambda1 <- approx(x = t, y = Lambda, xout = grid1[i])$y
+        Lambda2 <- approx(x = t, y = Lambda, xout = grid2[j])$y
+
+        S1 <- exp(-Lambda1*exp(margin1%*%beta))
+        S2 <- exp(-Lambda2*exp(margin2%*%beta))
+
+        surv2[i,j] <- (1+(((S1)^(-1/kappa)-1)^(1/alpha) + ((S2)^(-1/kappa)-1)^(1/alpha))^(alpha))^(-kappa)
+      }
+    }
+  }
+
+  output <- list(grid1=grid1, grid2=grid2, surv2 = t(surv2))
+  return(output)
+
+}
 
 
 

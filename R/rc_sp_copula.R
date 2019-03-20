@@ -1,14 +1,13 @@
-#' Copula regression models with parametric margins for bivariate right-censored data
+#' Copula regression models with Cox semiparametric margins for bivariate right-censored data
 #'
-#' @description Fits a copula model with parametric margins for bivariate right-censored data.
+#' @description Fits a copula model with Cox semiparametric margins for bivariate right-censored data.
 #'
-#' @name rc_par_copula
-#' @aliases rc_par_copula
+#' @name rc_spCox_copula
+#' @aliases rc_spCox_copula
 #' @param data a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two margins),
 #' \code{obs_time}, \code{status} (0 for right-censoring, 1 for event).
 #' @param var_list the list of covariates to be fitted into the model.
 #' @param copula specify the copula family.
-#' @param m.dist specify the marginal baseline distribution.
 #' @param method optimization method (see \code{?optim}); default is \code{"BFGS"};
 #' also can be \code{"Newton"} (see \code{?nlm}).
 #' @param iter number of iterations when \code{method = "Newton"};
@@ -17,8 +16,12 @@
 #' default is 1e-6.
 #' @param control a list of control parameters for methods other than \code{"Newton"};
 #' see \code{?optim}.
+#' @param B number of bootstraps for estimating standard errors with default 100;
+#' @param seed the bootstrap seed; default is 1
+#' @importFrom caret createResample
 #' @importFrom corpcor pseudoinverse
 #' @importFrom survival survreg
+#' @importFrom survival coxph
 #' @importFrom survival Surv
 #' @importFrom survival cluster
 #' @importFrom stats as.formula
@@ -27,6 +30,10 @@
 #' @importFrom stats pchisq
 #' @importFrom stats quantile
 #' @importFrom stats coef
+#' @importFrom stats aggregate
+#' @importFrom stats sd
+#' @importFrom utils setTxtProgressBar
+#' @importFrom utils txtProgressBar
 #' @importFrom pracma grad
 #' @importFrom pracma hessian
 #' @source
@@ -72,21 +79,8 @@
 #' with \eqn{\alpha \in (0,1], \kappa > 0} and Kendall's \eqn{\tau = 1-2\alpha\kappa/(2\kappa+1)}. \cr
 #'
 #'
-#'
-#' The supported marginal distributions are \code{"Weibull"} (proportional hazards),
-#' \code{"Gompertz"} (proportional hazards) and \code{"Loglogistic"} (proportional odds).
-#' These marginal distributions are listed below and
-#' we also assume the same baseline parameters between two margins. \cr
-#'
-#' The Weibull (PH) survival distribution is \deqn{\exp \{-(t/\lambda)^k  e^{Z^{\top}\beta}\},}
-#' with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape.
-#'
-#' The Gompertz (PH) survival distribution is \deqn{\exp \{-\frac{b}{a}(e^{at}-1) e^{Z^{\top}\beta}\},}
-#' with \eqn{a > 0} as shape and \eqn{b > 0} as rate.
-#'
-#' The Loglogistic (PO) survival distribution is \deqn{\{1+(t/\lambda)^{k} e^{Z^{\top}\beta} \}^{-1},}
-#' with \eqn{\lambda > 0} as scale and \eqn{k > 0} as shape. \cr
-#'
+#' The marginal distribution is a Cox semiparametric proportional hazards model.
+#' The copula parameter and coefficient standard errors are estimated from bootstrap. \cr
 #'
 #' Optimization methods can be all methods (except \code{"Brent"}) from \code{optim},
 #' such as \code{"Nelder-Mead"}, \code{"BFGS"}, \code{"CG"}, \code{"L-BFGS-B"}, \code{"SANN"}.
@@ -99,18 +93,18 @@
 #' \code{BIC}, \code{fitted}, \code{predict}.
 #'
 #' @examples
-#' # fit a Clayton-Weibull model
+#' # fit a Clayton-Cox model
 #' data(DRS)
-#' clayton_wb <- rc_par_copula(data = DRS, var_list = "treat",
-#'                             copula = "Clayton",
-#'                             m.dist = "Weibull")
-#' summary(clayton_wb)
+#' clayton_cox <- rc_spCox_copula(data = DRS, var_list = "treat",
+#'                             copula = "Clayton", B = 2)
+#' summary(clayton_cox)
 
 
 
-rc_par_copula <- function(data, var_list, copula="Clayton", m.dist="Weibull",
-                          method = "BFGS", iter = 500, stepsize = 1e-6,
-                          control = list()) {
+rc_spCox_copula <- function(data, var_list, copula="Clayton",
+                         method = "BFGS", iter = 500, stepsize = 1e-6,
+                         control = list(), B = 100,
+                         seed = 1) {
 
 
   # first screen the inputs: copula, m.dist, method #
@@ -127,10 +121,6 @@ rc_par_copula <- function(data, var_list, copula="Clayton", m.dist="Weibull",
 
   if (!copula %in% c("Clayton","Gumbel","Copula2","Frank","Joe","AMH"))	{
     stop('copula must be one of "Clayton","Gumbel","Copula2","Frank","Joe","AMH"')
-  }
-
-  if (!m.dist %in% c("Weibull","Loglogistic","Gompertz"))	{
-    stop('m.dist must be one of "Weibull","Loglogistic","Gompertz"')
   }
 
   if (!method %in% c("Newton","Nelder-Mead","BFGS","CG","SANN"))	{
@@ -156,41 +146,11 @@ rc_par_copula <- function(data, var_list, copula="Clayton", m.dist="Weibull",
   ###################################
   ############ Step 1a ##############
   ###################################
-
-  if (m.dist == "Weibull") {
-
-    M <- survreg(as.formula(paste0("Surv(obs_time,status)~",
-                                   paste0(var_list,collapse = "+"),
-                                   "+cluster(id)")),
-                 data = x, dist = "weibull")
-    lambda_ini <- exp(M$coef[1]) # as in wikipedia
-    k_ini <- 1/M$scale # k
-    beta_ini <- -1 * coef(M)[-1] * k_ini
-
-  }
-
-  if (m.dist == "Gompertz") {
-
-    M <- flexsurvreg(as.formula(paste0("Surv(obs_time,status)~",
-                                       paste0(var_list, collapse = "+"))),
-                     data = x, dist = "gompertz")
-    lambda_ini <- (M$coefficients[2]) # a
-    k_ini <- (M$coefficients[1]) # b
-    beta_ini <- M$coefficients[3:(p+2)]
-
-  }
-
-  if (m.dist == "Loglogistic") {
-
-    M <- survreg(as.formula(paste0("Surv(obs_time,status)~",
-                                   paste0(var_list, collapse = "+"),
-                                   "+cluster(id)")),
-                 data = x, dist = "loglogistic")
-    lambda_ini <- exp(M$coef[1]) # as in wikipedia
-    k_ini <- 1/M$scale # k
-    beta_ini <- -1 * coef(M)[-1] * k_ini
-
-  }
+  M <- coxph(as.formula(paste0("Surv(obs_time, status)~",
+                               paste0(var_list,collapse = "+"),
+                               "+cluster(id)")),
+             data = x, ties = "breslow")
+  beta_ini <- as.numeric(coef(M))
 
   ###################################
   ############ Step 1b ##############
@@ -204,27 +164,25 @@ rc_par_copula <- function(data, var_list, copula="Clayton", m.dist="Weibull",
   }
 
   else {
-    eta_ini <- 0 # log-scale
+    eta_ini <- 0
   }
 
   if (method == "Newton") {
 
-    fit0 <- nlm(rc_copula_log_lik_eta, p = eta_ini,
-                  p2 = c(lambda_ini,k_ini,beta_ini),
-                  x1 = x1, x2 = x2, indata1 = indata1,indata2 = indata2,
-                  iterlim = iter, steptol = stepsize, copula = copula,
-                  m.dist = m.dist)
+    fit0 <- nlm(rc_copula_log_lik_cox_eta, p = eta_ini,
+                p2 = c(beta_ini),
+                x1 = x1, x2 = x2, indata1 = indata1,indata2 = indata2,
+                iterlim = iter, steptol = stepsize, copula = copula)
 
     eta_ini <- exp(fit0$estimate) # anti-log
 
   } else {
 
-    fit0 <- optim(par = eta_ini, rc_copula_log_lik_eta,
-                    p2 = c(lambda_ini,k_ini,beta_ini),
-                    method = method,  control = control, hessian = FALSE,
-                    x1 = x1, x2 = x2,indata1 = indata1,indata2 = indata2,
-                    copula = copula, m.dist = m.dist)
-
+    fit0 <- optim(par = eta_ini, rc_copula_log_lik_cox_eta,
+                  p2 = c(beta_ini),
+                  method = method,  control = control, hessian = FALSE,
+                  x1 = x1, x2 = x2, indata1 = indata1,indata2 = indata2,
+                  copula = copula)
     eta_ini <- exp(fit0$par) # anti-log
   }
 
@@ -245,64 +203,105 @@ rc_par_copula <- function(data, var_list, copula="Clayton", m.dist="Weibull",
   ############ Step 2 ###############
   ###################################
 
-  if (method == "Newton") {
-      model_step2 <- nlm(rc_copula_log_lik, p = c(lambda_ini,k_ini,beta_ini,eta_ini),
+    if (method == "Newton") {
+      model_step2 <- nlm(rc_copula_log_lik_cox, p = c(eta_ini, beta_ini),
                          x1 = x1, x2 = x2,indata1 = indata1,indata2 = indata2,
-                         iterlim = iter, steptol = stepsize, hessian = T,
-                         copula = copula, m.dist = m.dist)
-      inv_info <- pseudoinverse(model_step2$hessian)
-      dih <- diag(inv_info)
-      dih[dih < 0] <- 0
-      se <- sqrt(dih)
-      beta <- model_step2$estimate # contains lambda, k, beta and eta
+                         iterlim = iter, steptol = stepsize, hessian = F,
+                         copula = copula)
+      beta <- model_step2$estimate
       llk <- -1 * model_step2$minimum
       AIC <- 2 * length(beta) - 2 * llk
-      stat <- (beta - 0)^2/se^2
-      pvalue <- pchisq(stat,1,lower.tail=F)
-      summary <- cbind(beta, se, stat, pvalue)
-
-      tmp_name1 <- if (m.dist != "Gompertz") c("lambda","k") else c("a","b")
-      tmp_name2 <- if (copula != "Copula2") c("eta") else c("alpha","kappa")
-      rownames(summary) = c(tmp_name1, var_list, tmp_name2)
-
-      colnames(summary) <- c("estimate","SE","stat","pvalue")
       code <- model_step2$code
-      output <- list(code = code, summary = summary, llk = llk, AIC = AIC,
-                     copula = copula, m.dist = m.dist, indata1 = indata1,
-                     indata2 = indata2, var_list = var_list,
-                     estimates = model_step2$estimate, x1 = x1, x2 = x2,
-                     inv_info = inv_info)
-  }
+    }
 
 
-  if (method != "Newton") {
-      model_step2 <- optim(c(lambda_ini,k_ini,beta_ini,eta_ini), rc_copula_log_lik,
-                         x1 = x1, x2 = x2,indata1 = indata1, indata2 = indata2,
-                         hessian = T, method = method,  control = control,
-                         copula = copula, m.dist = m.dist)
-      inv_info <- pseudoinverse(model_step2$hessian)
-      dih <- diag(inv_info)
-      dih[dih < 0] <- 0
-      se <- sqrt(dih)
-      beta <- model_step2$par # contains lambda, k, beta and eta
+    if (method != "Newton") {
+      model_step2 <- optim(c(eta_ini, beta_ini), rc_copula_log_lik_cox,
+                           x1 = x1, x2 = x2, indata1 = indata1, indata2 = indata2,
+                           hessian = F, method = method, control = control,
+                           copula = copula)
+      beta <- model_step2$par
       llk <- -1 * model_step2$value
       AIC <- 2 * length(beta) - 2 * llk
-      stat <- (beta - 0)^2/se^2
-      pvalue <- pchisq(stat, 1, lower.tail=F)
-      summary <- cbind(beta, se, stat, pvalue)
-
-      tmp_name1 <- if (m.dist != "Gompertz") c("lambda","k") else c("a","b")
-      tmp_name2 <- if (copula != "Copula2") c("eta") else c("alpha","kappa")
-      rownames(summary) <- c(tmp_name1, var_list, tmp_name2)
-
-      colnames(summary) <- c("estimate","SE","stat","pvalue")
       code <- model_step2$convergence
-      output <- list(code = code, summary = summary, llk = llk, AIC = AIC,
-                     copula = copula, m.dist = m.dist, indata1 = indata1,
+    }
+
+
+    # partitiioning samples by adjusting censoring
+    set.seed(seed)
+    status.id <- aggregate(data$status, by = list(data$id), FUN = sum)$x
+    groups <- createResample(status.id, times = B, list = F)
+    tmp <- c()
+    pb = txtProgressBar(title = "progress bar",
+                        min = 0, max = B, initial = 0,
+                        style = 3)  # progress bar
+
+    for (K in 1:B) {
+
+      tryCatch({
+
+
+      # new data
+      b = groups[, K]
+      x1.b = x1[b, ]
+      x2.b = x2[b, ]
+      indata1.b = indata1[b, ]
+      indata2.b = indata2[b, ]
+
+      if (method == "Newton") {
+        model_step2.b <- nlm(rc_copula_log_lik_cox, p = c(eta_ini, beta_ini),
+                             x1 = x1.b, x2 = x2.b, indata1 = indata1.b,
+                             indata2 = indata2.b,
+                             iterlim = iter, steptol = stepsize, hessian = F,
+                             copula = copula)
+        beta.b <- model_step2.b$estimate
+      }
+
+
+      if (method != "Newton") {
+        model_step2.b <- optim(c(eta_ini, beta_ini), rc_copula_log_lik_cox,
+                               x1 = x1.b, x2 = x2.b, indata1 = indata1.b,
+                               indata2 = indata2.b,
+                               hessian = F, method = method, control = control,
+                               copula = copula)
+        beta.b <- model_step2.b$par
+      }
+
+    }, error=function(e){cat("Error",conditionMessage(e), "\n")})
+
+      tmp <- cbind(tmp, beta.b)
+      setTxtProgressBar(pb = pb, value = K, label = paste0(round(K/B*100, 0), "% done"))
+
+    }
+    close(pb)
+
+    # calculate s.e
+    se <- as.numeric(apply(tmp, 1, function(x) {sd(x, na.rm = T)}))
+    stat <- (beta - 0)^2/se^2
+    pvalue <- pchisq(stat, 1, lower.tail = F)
+
+    # summary
+    summary <- cbind(beta, se, stat, pvalue)
+    tmp_name <- if (copula != "Copula2") c("eta") else c("alpha","kappa")
+    rownames(summary) = c(tmp_name, var_list)
+    colnames(summary) <- c("estimate","SE","stat","pvalue")
+    summary <- summary[c(var_list, tmp_name), ]
+
+    # output
+    if (method == "Newton") {
+      output <- list(code = code, llk = llk, AIC = AIC, summary = summary,
+                     copula = copula, indata1 = indata1,
+                     indata2 = indata2, var_list = var_list,
+                     estimates = model_step2$estimate, x1 = x1, x2 = x2,
+                     cox = TRUE)
+    } else {
+      output <- list(code = code, llk = llk, AIC = AIC, summary = summary,
+                     copula = copula, indata1 = indata1,
                      indata2 = indata2, var_list = var_list,
                      estimates = model_step2$par, x1 = x1, x2 = x2,
-                     inv_info = inv_info)
-  }
+                     cox = TRUE)
+    }
+
 
   class(output) <- "CopulaCenR"
   return(output)

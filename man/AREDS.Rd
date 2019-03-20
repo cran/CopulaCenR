@@ -9,7 +9,7 @@ A real dataset of bivariate interval-censored data with 629 subjects and 4 non-g
 }
 \usage{data("AREDS")}
 \format{
-  A data frame with 1258 observations on the following 11 variables.
+  A data frame with 1258 observations (629 subjects with 2 eyes) on the following 8 variables.
   \describe{
     \item{\code{id}}{subject id}
     \item{\code{ind}}{margin indicator, 1=shedding time, 2=colonization time}
@@ -26,5 +26,12 @@ AREDS Group (1999). The Age-Related Eye Disease Study (AREDS): design implicatio
 }
 \examples{
 data(AREDS)
+copula2_sp <- ic_spTran_copula(data = AREDS,
+              copula = "Copula2",
+              var_list = c("ENROLLAGE",
+                           "rs2284665",
+                           "SevScaleBL"),
+              l = 0, u = 15, m = 3, r = 3)
+summary(copula2_sp)
 }
 \keyword{datasets}

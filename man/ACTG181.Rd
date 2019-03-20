@@ -24,5 +24,11 @@ Betensky and Finkelstein (1999). A non-parametric maximum likelihood estimator f
 }
 \examples{
 data(ACTG181)
+clayton_sp <- ic_spTran_copula(data = ACTG181,
+                           copula = "Clayton",
+                           l = 0, u = 25,
+                           r = 3, m = 3,
+                           var_list = "x")
+summary(clayton_sp)
 }
 \keyword{datasets}

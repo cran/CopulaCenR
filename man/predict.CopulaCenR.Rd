@@ -7,8 +7,8 @@
 \method{predict}{CopulaCenR}(object, newdata, type = "lp", ...)
 }
 \arguments{
-\item{object}{a \code{CopulaCenR} object from \code{ic_sp_copula},
-\code{ic_par_copula} and \code{rc_par_copula}}
+\item{object}{a \code{CopulaCenR} object from \code{ic_spTran_copula},
+\code{rc_spCox_copula}, \code{ic_par_copula} and \code{rc_par_copula}}
 
 \item{newdata}{a data frame (see details)}
 
@@ -27,7 +27,8 @@ If \code{type = "survival"}, it returns a data frame with \code{id},
 \code{S12} (the predicted joint survival probabilities at \code{t1, t2})
 }
 \description{
-Predictions for new observations based on \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}
+Predictions for new observations based on \code{ic_spTran_copula}, \code{rc_spCox_copula},
+\code{ic_par_copula} and \code{rc_par_copula}.
 }
 \details{
 For the \code{newdata}, when \code{type = "survival"}, it must be a data frame with columns
@@ -46,7 +47,7 @@ will be evaluated at the given time points in the \code{newdata}. \cr
 \examples{
 data(AREDS)
 # fit a Copula2-Sieve model
-copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
               l = 0, u = 15, m = 3, r = 3,
               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 # Predicted probabilities for newdata

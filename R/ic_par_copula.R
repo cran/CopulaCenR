@@ -74,7 +74,7 @@
 #'
 #' The supported marginal distributions are \code{"Weibull"} (proportional hazards),
 #' \code{"Gompertz"} (proportional hazards) and \code{"Loglogistic"} (proportional odds).
-#' These marginal distributions follow the standard parameterization in Wikipedia
+#' These marginal distributions are listed below
 #' and we assume the same baseline parameters between two margins. \cr
 #'
 #' The Weibull (PH) survival distribution is \deqn{\exp \{-(t/\lambda)^k  e^{Z^{\top}\beta}\},}
@@ -94,21 +94,21 @@
 #' @return a \code{CopulaCenR} object summarizing the model.
 #' Can be used as an input to general \code{S3} methods including
 #' \code{summary}, \code{print}, \code{plot}, \code{lines},
-#' \code{coef}, \code{logLik], \code{AIC},
+#' \code{coef}, \code{logLik}, \code{AIC},
 #' \code{BIC}, \code{fitted}, \code{predict}.
 #'
 #' @examples
-#' # fit a Copula2-Loglogistic model
+#' # fit a Copula2-Weibull model
 #' data(AREDS)
-#' copula2_loglog <- ic_par_copula(data = AREDS, copula = "Copula2",
-#'                   m.dist = "Loglogistic",
-#'                   var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
-#' summary(copula2_loglog)
+#' copula2_wb <- ic_par_copula(data = AREDS, copula = "Copula2",
+#'                   m.dist = "Weibull",
+#'                   var_list = c("ENROLLAGE","rs2284665"))
+#' summary(copula2_wb)
 
 
 
 
-ic_par_copula <- function(data, var_list, copula, m.dist = "Loglogistic",
+ic_par_copula <- function(data, var_list, copula, m.dist = "Weibull",
                           method = "BFGS", iter=300, stepsize=1e-5,
                           hes = TRUE, control = list()){
 
@@ -204,15 +204,15 @@ ic_par_copula <- function(data, var_list, copula, m.dist = "Loglogistic",
   ###################################
 
   if (copula == "AMH") {
-    eta_ini <- 0.5
+    eta_ini <- 0
   }
 
   else if (copula == "Copula2") {
-    eta_ini <- c(1, 1)
+    eta_ini <- c(0, 0)
   }
 
   else {
-    eta_ini <- 2
+    eta_ini <- 0
   }
 
 
@@ -222,7 +222,7 @@ ic_par_copula <- function(data, var_list, copula, m.dist = "Loglogistic",
                         x1 = x1, x2 = x2, t1_left = t1_left, t1_right = t1_right,
                         t2_left = t2_left, t2_right = t2_right, indata1 = indata1,
                         indata2 = indata2, copula = copula, m.dist = m.dist)
-    eta_ini <- model_step1b$estimate
+    eta_ini <- exp(model_step1b$estimate)
 
   } else {
     model_step1b <- optim(par = eta_ini, ic_copula_log_lik_param_eta, hessian = FALSE,
@@ -231,12 +231,19 @@ ic_par_copula <- function(data, var_list, copula, m.dist = "Loglogistic",
                           x1 = x1, x2 = x2, t1_left = t1_left, t1_right = t1_right,
                           t2_left = t2_left, t2_right = t2_right, indata1 = indata1,
                           indata2 = indata2, copula = copula, m.dist = m.dist)
-    eta_ini <- model_step1b$par
+    eta_ini <- exp(model_step1b$par)
   }
 
 
+  # Quality check for step 1b estimates
   # AMH shall be between 0 and 1
   if (copula == "AMH" & eta_ini[1] > 1) {eta_ini <- 0.5}
+  # Gumbel shall be >= 1
+  if (copula == "Gumbel" & eta_ini[1] < 1) {eta_ini <- 1}
+  # Joe shall be >= 1
+  if (copula == "Joe" & eta_ini[1] < 1) {eta_ini <- 1}
+  # Copula2 alpha shall be between 0 and 1
+  if (copula == "Copula2" & eta_ini[1] > 1) {eta_ini[1] <- 0.5}
 
 
   ###################################

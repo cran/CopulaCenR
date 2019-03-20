@@ -1,10 +1,12 @@
 #' Fitted values from CopulaCenR regression models
 #'
-#' Fitted values based on models from \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}.
+#' Fitted values based on models from \code{ic_spTran_copula}, \code{rc_spCox_copula},
+#' \code{ic_par_copula} and \code{rc_par_copula}.
 #'
 #' @name fitted.CopulaCenR
 #' @aliases fitted.CopulaCenR
-#' @param object a \code{CopulaCenR} object from \code{ic_sp_copula}, \code{ic_par_copula} and \code{rc_par_copula}
+#' @param object a \code{CopulaCenR} object from \code{ic_spTran_copula},
+#' \code{rc_spCox_copula}, \code{ic_par_copula} and \code{rc_par_copula}
 #' @param type \code{"lp"} for linear predictors or
 #' \code{"survival"} for marginal and joint survival probabilities
 #' @param ... further arguments
@@ -31,7 +33,7 @@
 #' @examples
 #' data(AREDS)
 #' # fit a Copula2-Sieve model
-#' copula2_sp <- ic_sp_copula(data = AREDS, copula = "Copula2",
+#' copula2_sp <- ic_spTran_copula(data = AREDS, copula = "Copula2",
 #'               l = 0, u = 15, m = 3, r = 3,
 #'               var_list = c("ENROLLAGE","rs2284665","SevScaleBL"))
 #' output <- fitted(object = copula2_sp)
