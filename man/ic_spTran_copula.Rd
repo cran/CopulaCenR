@@ -4,14 +4,14 @@
 \alias{ic_spTran_copula}
 \title{Copula regression models with semiparametric margins for bivariate interval-censored data}
 \source{
-Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2018).
+Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2019).
 Copula-based Score Test for Bivariate Time-to-event Data,
 with Application to a Genetic Study of AMD Progression.
-\emph{Lifetime Data Analysis} doi:10.1007/s10985-018-09459-5. \cr
-Tao Sun and Ying Ding (2019).
-Copula-based Semiparametric Transformation Model for Bivariate Data
-Under General Interval Censoring.
-http://arxiv.org/abs/1901.01918.
+\emph{Lifetime Data Analysis} 25(3), 546-568. \cr
+Tao Sun and Ying Ding (In Press).
+Copula-based Semiparametric Regression Model for Bivariate Data
+under General Interval Censoring.
+\emph{Biostatistics}. DOI: 10.1093/biostatistics/kxz032.
 }
 \usage{
 ic_spTran_copula(data, var_list, l = 0, u, copula = "Copula2", m = 3,
@@ -101,7 +101,7 @@ The marginal semiparametric transformation models are built based on Bernstein p
 \deqn{S(t|Z) = \exp[-G\{\Lambda(t) e^{Z^{\top}\beta}\}],} where \eqn{t} is time, \eqn{Z} is covariate,
 \eqn{\beta} is coefficient and \eqn{\Lambda(t)} is an unspecified function with infinite dimensions.
 We approximate \eqn{\Lambda(t)} in a sieve space constructed by Bernstein polynomials with degree \eqn{m}. By default, \eqn{m=3}.
-In the end, all model parameters are estimated by the sieve estimators (Sun et.al., 2019).
+In the end, all model parameters are estimated by the sieve estimators (Sun and Ding, In Press).
 
 The \eqn{G(\cdot)} function is the transformation function with a parameter \eqn{r > 0}, which has a form of
 \eqn{G(x) = \frac{(1+x)^r - 1}{r}}, when \eqn{0 < r \leq 2} and \eqn{G(x) = \frac{\log\{1 + (r-2)x\}}{r - 2}} when \eqn{r > 2}.

@@ -30,9 +30,9 @@ The main features of CopulaCenR are: \cr
 (9) A user-friendly function to simulate bivariate event times: \code{data_sim_copula}. \cr
 }
 \source{
-Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2018). Copula-based Score Test for Bivariate Time-to-event Data, with Application to a Genetic Study of AMD Progression. \emph{Lifetime Data Analysis} doi:10.1007/s10985-018-09459-5. \cr
+Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2018). Copula-based Score Test for Bivariate Time-to-event Data, with Application to a Genetic Study of AMD Progression. #' \emph{Lifetime Data Analysis} 25(3), 546???568. \cr
 
-Tao Sun and Ying Ding (2019). Copula-based Semiparametric Transformation Model for Bivariate Data Under General Interval Censoring. http://arxiv.org/abs/1901.01918. \cr
+Tao Sun and Ying Ding (In Press). Copula-based Semiparametric Regression Method for Bivariate Data under General Interval Censoring. http://arxiv.org/abs/1901.01918. \cr
 }
 \examples{
 ### bivariate right-censored data

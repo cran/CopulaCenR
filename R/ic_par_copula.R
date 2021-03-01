@@ -30,14 +30,14 @@
 #' @export
 #'
 #' @source
-#' Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2018).
+#' Tao Sun, Yi Liu, Richard J. Cook, Wei Chen and Ying Ding (2019).
 #' Copula-based Score Test for Bivariate Time-to-event Data,
 #' with Application to a Genetic Study of AMD Progression.
-#' \emph{Lifetime Data Analysis} doi:10.1007/s10985-018-09459-5. \cr
-#' Tao Sun and Ying Ding (2019).
-#' Copula-based Semiparametric Transformation Model for Bivariate Data
-#' Under General Interval Censoring.
-#' http://arxiv.org/abs/1901.01918.
+#' \emph{Lifetime Data Analysis} 25(3), 546-568. \cr
+#' Tao Sun and Ying Ding (In Press).
+#' Copula-based Semiparametric Regression Model for Bivariate Data
+#' under General Interval Censoring.
+#' \emph{Biostatistics}. DOI: 10.1093/biostatistics/kxz032.
 #'
 #' @details The input data must be a data frame. with columns \code{id} (sample id),
 #' \code{ind} (1,2 for the two units from the same id),
