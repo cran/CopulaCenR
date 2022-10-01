@@ -14,9 +14,20 @@ under General Interval Censoring.
 \emph{Biostatistics}. DOI: 10.1093/biostatistics/kxz032.
 }
 \usage{
-ic_spTran_copula(data, var_list, l = 0, u, copula = "Copula2", m = 3,
-  r = 3, method = "BFGS", iter = 300, stepsize = 1e-06,
-  hes = TRUE, control = list())
+ic_spTran_copula(
+  data,
+  var_list,
+  l = 0,
+  u,
+  copula = "Copula2",
+  m = 3,
+  r = 3,
+  method = "BFGS",
+  iter = 300,
+  stepsize = 1e-06,
+  hes = TRUE,
+  control = list()
+)
 }
 \arguments{
 \item{data}{a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two units in each subject),

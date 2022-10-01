@@ -12,7 +12,7 @@ A real dataset of bivariate interval-censored data with 629 subjects and 4 non-g
   A data frame with 1258 observations (629 subjects with 2 eyes) on the following 8 variables.
   \describe{
     \item{\code{id}}{subject id}
-    \item{\code{ind}}{margin indicator, 1=shedding time, 2=colonization time}
+    \item{\code{ind}}{margin indicator, 1=left eye, 2=right eye}
     \item{\code{Left}}{left bound of observed interval}
     \item{\code{Right}}{right bound of observed interval}
     \item{\code{status}}{censoring indicator; 1=interval-censor, 0=right censor.}

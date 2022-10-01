@@ -14,8 +14,16 @@ under General Interval Censoring.
 \emph{Biostatistics}. DOI: 10.1093/biostatistics/kxz032.
 }
 \usage{
-rc_par_copula(data, var_list, copula = "Clayton", m.dist = "Weibull",
-  method = "BFGS", iter = 500, stepsize = 1e-06, control = list())
+rc_par_copula(
+  data,
+  var_list,
+  copula = "Clayton",
+  m.dist = "Weibull",
+  method = "BFGS",
+  iter = 500,
+  stepsize = 1e-06,
+  control = list()
+)
 }
 \arguments{
 \item{data}{a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two margins),

@@ -4,11 +4,26 @@
 \alias{plot.CopulaCenR}
 \title{Plotting for CopulaCenR fits}
 \usage{
-\method{plot}{CopulaCenR}(x, y, class = "joint", newdata,
-  evalPoints = 50, evalTimes1 = NULL, evalTimes2 = NULL,
-  plot_margin = 1, cond_time = NULL, cond_margin = 2, type = "l",
-  xlab = "years", ylab = "survival probability", cex.main = 1.4,
-  cex.lab = 1.4, cex.axis = 1.4, legend = TRUE, ...)
+\method{plot}{CopulaCenR}(
+  x,
+  y,
+  class = "joint",
+  newdata,
+  evalPoints = 50,
+  evalTimes1 = NULL,
+  evalTimes2 = NULL,
+  plot_margin = 1,
+  cond_time = NULL,
+  cond_margin = 2,
+  type = "l",
+  xlab = "years",
+  ylab = "survival probability",
+  cex.main = 1.4,
+  cex.lab = 1.4,
+  cex.axis = 1.4,
+  legend = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{an object of \code{ic_spTran_copula} or \code{rc_spCox_copula}

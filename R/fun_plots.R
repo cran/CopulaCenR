@@ -9,7 +9,10 @@ internal_predict.CopulaCenR <- function(object, class = "joint", newdata, evalPo
 
 
   # first screen the inputs #
-  if (class(object) != "CopulaCenR") stop('object must be a CopulaCenR class object')
+  # if (class(object) != "CopulaCenR") stop('object must be a CopulaCenR class object')
+  if (isFALSE(inherits(object, what = "CopulaCenR"))) {
+    stop('object must be a CopulaCenR class object')
+  }
   if (!class %in% c("joint","conditional","marginal")) stop('class must be one of joint, conditional and marginal')
   if (!is.data.frame(newdata) | !"id" %in% colnames(newdata) | !"ind" %in% colnames(newdata)) stop('newdata must be a data frame with columns id, ind and var_list')
 

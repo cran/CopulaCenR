@@ -43,7 +43,8 @@ fitted.CopulaCenR <- function(object, type = "lp", ...) {
 
 
   # first screen the inputs #
-  if (class(object) != "CopulaCenR") {
+  # if (class(object) != "CopulaCenR") {
+  if (isFALSE(inherits(object, what = "CopulaCenR"))) {
     stop('object must be a CopulaCenR class object')
   }
 

@@ -122,7 +122,8 @@ lines.CopulaCenR <- function(x, y, class = "joint", newdata, evalPoints = 50,
   if (is.null(evalTimes1)) {evalTimes1 <- evalTimes2}
 
   # first screen the inputs #
-  if (class(object) != "CopulaCenR") {
+  # if (class(object) != "CopulaCenR") {
+  if (isFALSE(inherits(object, what = "CopulaCenR"))) {
     stop('object must be a CopulaCenR class object')
   }
 

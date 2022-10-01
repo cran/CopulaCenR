@@ -1,9 +1,20 @@
 
 ###### functions for building likelihoods #######
 
+# # Berstein polynomials: j from 0-m, m for degree, l/u for range of time, t for specific times
+# bern <- function(j,m,l,u,t){
+#   b = (factorial(m)/(factorial(j)*factorial(m-j)))*(((t-l)/(u-l))^j)*((1-(t-l)/(u-l))^(m-j))
+#   return(b)
+# }
+
 # Berstein polynomials: j from 0-m, m for degree, l/u for range of time, t for specific times
 bern <- function(j,m,l,u,t){
-  b = (factorial(m)/(factorial(j)*factorial(m-j)))*(((t-l)/(u-l))^j)*((1-(t-l)/(u-l))^(m-j))
+
+  if (j > m) {
+    b = 0
+  } else {
+    b = (factorial(m)/(factorial(j)*factorial(m-j)))*(((t-l)/(u-l))^j)*((1-(t-l)/(u-l))^(m-j))
+  }
   return(b)
 }
 

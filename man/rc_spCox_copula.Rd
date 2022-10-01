@@ -14,9 +14,17 @@ under General Interval Censoring.
 \emph{Biostatistics}. DOI: 10.1093/biostatistics/kxz032.
 }
 \usage{
-rc_spCox_copula(data, var_list, copula = "Clayton", method = "BFGS",
-  iter = 500, stepsize = 1e-06, control = list(), B = 100,
-  seed = 1)
+rc_spCox_copula(
+  data,
+  var_list,
+  copula = "Clayton",
+  method = "BFGS",
+  iter = 500,
+  stepsize = 1e-06,
+  control = list(),
+  B = 100,
+  seed = 1
+)
 }
 \arguments{
 \item{data}{a data frame; must have \code{id} (subject id), \code{ind} (1,2 for two margins),

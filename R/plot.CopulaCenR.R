@@ -120,7 +120,8 @@ plot.CopulaCenR <- function(x, y, class = "joint", newdata, evalPoints = 50,
 
 
   # first screen the inputs #
-  if (class(object) != "CopulaCenR") {
+  # if (class(object) != "CopulaCenR") {
+  if (isFALSE(inherits(object, what = "CopulaCenR"))) {
     stop('object must be a CopulaCenR class object')
   }
 

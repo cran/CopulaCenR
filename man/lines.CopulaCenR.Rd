@@ -4,10 +4,20 @@
 \alias{lines.CopulaCenR}
 \title{Plotting for CopulaCenR fits}
 \usage{
-\method{lines}{CopulaCenR}(x, y, class = "joint", newdata,
-  evalPoints = 50, evalTimes1 = NULL, evalTimes2 = NULL,
-  plot_margin = 1, cond_time = NULL, cond_margin = 2,
-  plotly_object = NULL, ...)
+\method{lines}{CopulaCenR}(
+  x,
+  y,
+  class = "joint",
+  newdata,
+  evalPoints = 50,
+  evalTimes1 = NULL,
+  evalTimes2 = NULL,
+  plot_margin = 1,
+  cond_time = NULL,
+  cond_margin = 2,
+  plotly_object = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{an object of  \code{ic_spTran_copula}, \code{rc_spCox_copula},
