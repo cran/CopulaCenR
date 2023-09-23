@@ -1,5 +1,5 @@
-dfd92711da49bfd88a6b5b5f2d1a6908 *DESCRIPTION
-8dfc72803eca5c984ed12f649ef8d30c *NAMESPACE
+e9497ba4c8977d02b211f3f26ddc8cad *DESCRIPTION
+660c6753e77e0474babc6cb62eada9c6 *NAMESPACE
 b1c4c6505ce7ac7b7f239b166e726d7f *R/IRsurv.R
 a267d8fe2240ef2b38aaa1feb282281c *R/data_sim_copula.R
 cb9434402bec06bd08a3057a92615327 *R/fitted.CopulaCenR.R
@@ -10,7 +10,8 @@ e48b5e4ac401a1232e9717afe7bf6b0b *R/fun_S3.R
 c114574ec1e13c3bae50b956f88e3f47 *R/fun_model.R
 15166b366a9db1caf60cd9d01437fe9b *R/fun_plots.R
 50223cb5ff8a9590e20d8159df3a3267 *R/fun_pseudo_loglik.R
-7b9ac1df4e067f4f1432097323f5caad *R/fun_scmprisk.R
+2fe4d2781601868e0a9c997448bfab8a *R/fun_rc_scmprisk_pen.R
+e4ed9242eb0d7bfb974fe15be29fdadb *R/fun_scmprisk.R
 d677a5d8a57e3a5f6516053f71d04345 *R/fun_score.R
 d24a33923e4f720cbc76ef779ab201b7 *R/ic_par_copula.R
 64358a201351c8937d5a206ba42dc694 *R/ic_scmprisk_spTran_copula.R
@@ -20,6 +21,7 @@ c83d82ddf5c69774ed23a37b7fe8cbf6 *R/lines.CopulaCenR.R
 b2472a8fa8261c279e4b47b2f25c1793 *R/plot.CopulaCenR.R
 268d492a71137c0a7d79602dec734633 *R/predict.CopulaCenR.R
 6fcb27682cba500be41d4ea415d4ea26 *R/rc_par_copula.R
+88de96ec8c4e6dca43f8f2ec50aeaa32 *R/rc_scmprisk_sp_copula_pen.R
 fbdc03e28e9c1de3ba2205bf5a9bc0c5 *R/rc_sp_copula.R
 5b38a324b24ff7aa6170d2f3aa89a1a2 *R/score_copula.R
 39a9156ec5a1aa03c9b00334595119fa *R/tau_copula.R
@@ -32,6 +34,7 @@ fbdc03e28e9c1de3ba2205bf5a9bc0c5 *R/rc_sp_copula.R
 9531003d590f08bd0f7364556b459b72 *data/data_sim_ic.RData
 5a717cb6708de119d2c8606b2a8bfe25 *data/data_sim_multi_rec.RData
 258a76d04f658dc4123ad4e07138d2d6 *data/data_sim_rec.RData
+f735547b529ab1fc0de345dd9afd6424 *data/data_sim_scmprisk_vs.RData
 b614b222dbbdb0c4dd8520019538555e *man/ACTG181.Rd
 54c299c43ed46e32617c62778a49647b *man/AIC.CopulaCenR.Rd
 8855e73e1ecb0b1c32f0907aeea2dd49 *man/AREDS.Rd
@@ -47,6 +50,7 @@ e3e14af5d9c11ff4ee01905785f72571 *man/data_sim_RC.Rd
 83e2af8a4f44463299672176a5118b6f *man/data_sim_ic.Rd
 641c10cb1d3abd01cf29c05d7a4ec8a1 *man/data_sim_multi_rec.Rd
 64f8fb58022799e393d04b9dd8afe01a *man/data_sim_rec.Rd
+9435cbde4017096e8a1e7c307294d655 *man/data_sim_scmprisk_vs.Rd
 7530eccefa8d121079a2ef4d5871fe21 *man/fitted.CopulaCenR.Rd
 d4563000ea9b39565cacd7a1374282e6 *man/ic_par_copula.Rd
 d3251fcb5def08c6d87470c0ae087d0c *man/ic_scmprisk_spTran_copula.Rd
@@ -59,6 +63,7 @@ cbc45ced77a9fc00c23dd864a2e829c0 *man/logLik.CopulaCenR.Rd
 20effe823a8442cdcc721834ff3b5692 *man/print.CopulaCenR.Rd
 a8b7b4530e7b2546e2f4a91021ab0717 *man/print.summary.CopulaCenR.Rd
 312008c6d95d83c83b993d83e74d5e61 *man/rc_par_copula.Rd
+dc31793ef5a4ed3acddfb9088cfeae61 *man/rc_scmprisk_sp_copula_pen.Rd
 c824b256f17b476e189c4427ca511a0f *man/rc_spCox_copula.Rd
 4bf7c42c9728b673bca250136ea93a87 *man/score_copula.Rd
 a6a77a85b02e8e12c05da269ac74f726 *man/summary.CopulaCenR.Rd

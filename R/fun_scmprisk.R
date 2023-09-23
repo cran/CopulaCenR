@@ -2,7 +2,8 @@
 bern_derivative <- function(j,m,l,u,t){
 
   if (j != 0) {
-    b = m*bern(j-1, m-1, l, u, t) - m*bern(j, m-1, l, u, t)
+    # b = m*bern(j-1, m-1, l, u, t) - m*bern(j, m-1, l, u, t)
+    b = (m/(u - l)) * (bern(j-1, m-1, l, u, t)-bern(j, m-1, l, u, t))
   } else if (j == 0) {
     b = -1 * m * (u - t)^(m - 1)/((u - l)^m)
   }
